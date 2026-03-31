@@ -1,0 +1,128 @@
+#=======================================================================================#
+#                                                                                       #
+# Main input data.  This input controls the program execution and sets general problem  #
+# geometry. This should be the first set of inputs.                                     #
+#                                                                                       #
+#=======================================================================================#
+# Input file for the Finite Difference Diffusion Solver (FDDS)                          #
+# Inputs are case sensitive.                                                            #
+#                                                                                       #
+# Solution = method for solving the problem.                                            #
+#        0 = Finite difference solution method. (Default)                               #
+#        1 = Monte Carlo solution method.                                               #
+# TestCase = The specific cross section data set to be used for this calculation.       #
+# Config   = The specific geometric configuration that will be used for this            #
+#            calculation.                                                               #
+# Analk    = Calculate the analytic multiplication factor.                              #
+Solution = 1
+TestCase = 0
+Config   = 0
+Analk = 1
+
+# Cases    = Number of different sets of cross section data that will be entered in the #
+#            input file.                                                                #
+# Configs  = The total number of different configurations entered into the input file.  #
+# MatTypes = The total number of different material types for cross section data to be  #
+#            entered.                                                                   #
+# EnergyGroups = The total number of different energy groups in the problem.            #
+Cases    = 3
+Configs  = 2
+MatTypes = 4
+EnergyGroups = 2
+
+# solver  = The specific solver to be used for this calculation. Only needed for finite #
+#           difference method.                                                          #
+#       0 = np.linalg.solve (Default)                                                   #
+#       1 = Gaussian Elimination                                                        #
+#       2 = Jacobi                                                                      #
+#       3 = SOR                                                                         #
+solver   = 0
+
+# Generations = The number of generations to be simulated with the Monte Carlo Method.  #
+# Histories   = The number of histories per generation to be simulated with the Monte   #
+#               Carlo method.                                                           #
+Generations = 100
+Histories = 1000
+Skip = 1
+
+# NumRods  = Number of unit cells to be used in this problem.  A unit cell includes both#
+#           the fuel rod and half of the gap between itself and the next fuel rod.      #
+# RodDia   = Fuel rod diameter.                                                         #
+# RodPitch = Fuel rod pitch (i.e. center to center distance between fuel rods).         #
+# MPFR     = Number of Meshes Per Fuel Rod (MPFR).                                      #
+# MPWR     = Number of Meshes Per Water Rod (MPWR). MPWR should be an even number       #
+#            however, if you enter an odd number, the code will make it even by adding  #
+#            1 to the value entered.                                                    #
+NumAss   = 2
+NumRods  = 17
+RodDia   = 0.94
+RodPitch = 1.26
+MPFR = 7
+MPWR = 4
+
+# You have to specify the boundary conditions after you set the number of energy groups #
+# BoundL  = Left Boundary Condition                                                     #
+# BoundR  = Right Boundary Condition                                                    #
+BoundL = 1.0 1.0
+BoundR = 1.0 1.0
+
+#=======================================================================================#
+#                                                                                       #
+# Cross section data.  This has to be input after the main data above.                  #
+#                                                                                       #
+#=======================================================================================#
+
+XSData
+    #           Test Case A cross section data                                          #
+    case = 0
+    #             Energy Group 1                        Energy Group 2                  #
+    #        UO2      MOX      H2O      CR         UO2      MOX      H2O      CR        #
+    #         0        1        2        3          0        1        2        3        #
+    SigTR = 0.24896  0.24798  0.23823  0.10000    0.88525  1.12071  1.22518  1.10000
+    SigIS = 0.22698  0.22482  0.21904  0.00000    0.68472  0.69359  1.21063  0.10000
+    SigDS = 0.01102  0.00886  0.02776  0.00000    0.00000  0.00000  0.00000  0.00000
+    SigA  = 0.01163  0.01495  0.01598  0.10000    0.11746  0.27116  0.01455  1.00000
+    SigF  = 0.00394  0.00400  0.00000  0.00000    0.08307  0.15596  0.00000  0.00000
+    nuT   = 2.46950  2.84100  0.00000  0.00000    2.46950  2.84100  0.00000  0.00000
+    ChiT  = 1.00000  1.00000  0.00000  0.00000    0.00000  0.00000  0.00000  0.00000
+
+    #           Test Case B cross section data                                          #
+    case = 1
+    #         Energy Group 1               Energy Group 2                               #
+    #       UO2    MOX    H2O   CR       UO2   MOX  H2O  CR                             #
+    #        0      1      2     3        0     1    2    3                             #
+    SigTR = 0.2    0.2    0.2   0.1      1.0   1.2  1.1  1.1
+    SigIS = 0.185  0.185  0.17  0.0      0.8   0.8  1.1  0.1
+    SigDS = 0.015  0.015  0.03  0.0      0.0   0.0  0.0  0.0
+    SigA  = 0.0    0.0    0.0   0.1      0.2   0.4  0.0  1.0
+    SigF  = 0.0    0.0    0.0   0.0      0.18  0.3  0.0  0.0
+    nuT   = 0.0    0.0    0.0   0.0      1.4   1.5  0.0  0.0
+    ChiT  = 1.0    1.0    0.0   0.0      0.0   0.0  0.0  0.0
+
+    #           Test Case C cross section data                                          #
+    case = 2
+    #         Energy Group 1               Energy Group 2                               #
+    #       UO2    MOX    H2O   CR       UO2   MOX  H2O  CR                             #
+    #        0      1      2     3        0     1    2    3                             #
+    SigTR = 0.2    0.2    0.2   0.1      0.2   0.6  1.1  1.1
+    SigIS = 0.2    0.2    0.17  0.0      0.0   0.0  1.1  0.1
+    SigDS = 0.0    0.0    0.03  0.0      0.0   0.0  0.0  0.0
+    SigA  = 0.0    0.0    0.0   0.1      0.2   0.6  0.0  1.0
+    SigF  = 0.0    0.0    0.0   0.0      0.2   0.5  0.0  0.0
+    nuT   = 0.0    0.0    0.0   0.0      1.4   1.5  0.0  0.0
+    ChiT  = 1.0    1.0    0.0   0.0      0.0   0.0  0.0  0.0
+END
+
+# Next add the different configurations.                                                #
+ConfigSets
+    # .... Define the material composition for each configuration. The set number       #
+    #      start with 0.  Material id corresponds with the material location above.     #
+    #      NOTE: this should be changed to allow for assembly wise input.               #
+    #      UO2 = 0, MOX = 1, H2O = 2, CR = 3                                            #
+    Set = 0
+    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
+    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
+    Set = 1
+    MatID = 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2
+    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
+END

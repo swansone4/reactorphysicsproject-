@@ -1,0 +1,11 @@
+# Fortran compiled files
+*.o
+*.mod
+*.out
+
+# executables
+main_program
+*.exe
+
+# macOS
+.DS_Store

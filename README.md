@@ -1,6 +1,6 @@
-# FDDS input reader (Fortran)
+# Monte-Carlo/Finite Difference Nodal Solver for ENU6106 (Reactor Physics) course
 
-Small program that reads `input_file.txt` (main settings, boundaries, and `XSData` cross sections) and prints the values loaded into module `read_input_file`.
+Reads `input_file.txt` (main settings, boundaries, and `XSData` cross sections) and prints the values loaded into module `read_input_file`.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ Small program that reads `input_file.txt` (main settings, boundaries, and `XSDat
 From this directory:
 
 ```bash
-gfortran -o main_program read_input_file.f90 main.f90
+gfortran -o main_program read_input_file.f90 mesh_generation.f90 main.f90
 ```
 
 Compile the module source before `main.f90` so the `read_input_file` module is available to the main program.

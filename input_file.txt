@@ -44,6 +44,11 @@ solver   = 0
 Generations = 100
 Histories = 1000
 Skip = 1
+# VerifyXS = 1 writes xs_mapping_verify_case_<n>.csv for one XS library case only (same xs_* slice as map_XS_to_meshes).
+# VerifyXS = 0 never writes that file — deleting the CSV and rerunning with 0 will not recreate it; set to 1 first.
+# VerifyXSCase = 0,1,... selects that case (A=0,B=1,...); -1 uses TestCase. Optional: CALL verify_XS_mapping(n) from main overrides when n>=0; use -1 for TestCase.
+VerifyXS = 1
+VerifyXSCase = 0
 
 # NumRods  = Number of unit cells to be used in this problem.  A unit cell includes both#
 #           the fuel rod and half of the gap between itself and the next fuel rod.      #
@@ -78,7 +83,7 @@ XSData
     #             Energy Group 1                        Energy Group 2                  #
     #        UO2      MOX      H2O      CR         UO2      MOX      H2O      CR        #
     #         0        1        2        3          0        1        2        3        #
-    SigTR = 0.24896  0.24798  0.23823  0.10000    0.88525  1.12071  1.22518  1.10000
+    SigTR = 0.24896  0.24798  0.23823  0.10000    0.88525  1.12071 1.22518  1.10000
     SigIS = 0.22698  0.22482  0.21904  0.00000    0.68472  0.69359  1.21063  0.10000
     SigDS = 0.01102  0.00886  0.02776  0.00000    0.00000  0.00000  0.00000  0.00000
     SigA  = 0.01163  0.01495  0.01598  0.10000    0.11746  0.27116  0.01455  1.00000
@@ -113,16 +118,14 @@ XSData
     ChiT  = 1.0    1.0    0.0   0.0      0.0   0.0  0.0  0.0
 END
 
-# Next add the different configurations.                                                #
+# Next add the configurations.                                                #
 ConfigSets
     # .... Define the material composition for each configuration. The set number       #
     #      start with 0.  Material id corresponds with the material location above.     #
     #      NOTE: this should be changed to allow for assembly wise input.               #
     #      UO2 = 0, MOX = 1, H2O = 2, CR = 3                                            #
+    # placeholder set, not important or relevant to project
     Set = 0
     MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
-    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
-    Set = 1
-    MatID = 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2
-    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
+
 END

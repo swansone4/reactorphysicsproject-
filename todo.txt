@@ -1,0 +1,3 @@
+the control rod insertion should not change the overall length of the assembly 
+
+when bound condition is vacuum, should exit while loop for monte carlo 

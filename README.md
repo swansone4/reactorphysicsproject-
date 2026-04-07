@@ -24,6 +24,18 @@ Compile the module source before `main.f90` so the `read_input_file` module is a
 
 The program opens `input_file.txt` in the **current working directory**. Run the command from the project folder (or pass a path only if you change the code to accept a different filename; the default in `main.f90` is `input_file.txt`).
 
+## Project layout
+
+- `read_input_file.f90`, `mesh_generation.f90`, `main.f90`: Fortran source files.
+- `scripts/`: Python visualization scripts:
+  - `scripts/mesh_visualization.py`
+  - `scripts/XS_mesh_mapped_visualization.py`
+- `outputs/`: generated artifacts:
+  - `outputs/mesh_dumps/` (`mesh_dump_set_*.csv`)
+  - `outputs/xs_mapping/` (`xs_mapping_verify_case_*.csv`)
+  - `outputs/plots/mesh/` (mesh PNGs)
+  - `outputs/plots/xs_mesh_mapped/` (meshwise XS PNGs)
+
 ## What it does
 
 1. **`main.f90`** sets `print_input_data` and calls `read_input('input_file.txt')` then `print_input()`.

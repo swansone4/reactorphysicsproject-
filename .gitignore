@@ -9,3 +9,6 @@ main_program
 
 # macOS
 .DS_Store
+
+# generated outputs
+outputs/

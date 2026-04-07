@@ -126,6 +126,6 @@ ConfigSets
     #      UO2 = 0, MOX = 1, H2O = 2, CR = 3                                            #
     # placeholder set, not important or relevant to project
     Set = 0
-    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2
+    MatID = 2 3 2 0 2 0 2 0 2 0 2 0 2 0 2 3 2 0 2 0 2 0 2 0 2 0 2 3 2 0 2 0 2 0 2
 
 END

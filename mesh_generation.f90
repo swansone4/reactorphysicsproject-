@@ -234,7 +234,8 @@ CONTAINS
             RETURN
         END IF
 
-        WRITE(fname, '(A,I0,A)') "xs_mapping_verify_case_", case_input, ".csv"
+        CALL execute_command_line("mkdir -p outputs/xs_mapping", WAIT=.TRUE.)
+        WRITE(fname, '(A,I0,A)') "outputs/xs_mapping/xs_mapping_verify_case_", case_input, ".csv"
         OPEN(NEWUNIT=u, FILE=TRIM(fname), STATUS='REPLACE', ACTION='WRITE', IOSTAT=ios)
         IF (ios /= 0) THEN
             PRINT *, "verify_XS_mapping: could not open ", TRIM(fname)
@@ -282,7 +283,8 @@ CONTAINS
         CHARACTER(LEN=128) :: filename
 
         n_pos = set_len(set_number)
-        WRITE(filename,'(A,I0,A)') "mesh_dump_set_", set_number-1, ".csv"
+        CALL execute_command_line("mkdir -p outputs/mesh_dumps", WAIT=.TRUE.)
+        WRITE(filename,'(A,I0,A)') "outputs/mesh_dumps/mesh_dump_set_", set_number-1, ".csv"
 
         OPEN(NEWUNIT=u, FILE=filename, STATUS='REPLACE', ACTION='WRITE', IOSTAT=ios)
         IF (ios /= 0) THEN
@@ -347,7 +349,7 @@ CONTAINS
     ! Call Python to generate visualization PNGs.
     !-----------------------------------------------------------
     SUBROUTINE run_mesh_visualization()
-        CALL execute_command_line("python mesh_visualization.py", WAIT=.TRUE.)
+        CALL execute_command_line("python scripts/mesh_visualization.py", WAIT=.TRUE.)
     END SUBROUTINE run_mesh_visualization
 
     !===========================================================
@@ -419,7 +421,8 @@ CONTAINS
 
         ! Minimal per-position summary (material, points, first/last radius)
         DO pos_index = 1, n_pos
-            IF (MatID(set_number, pos_index) == 0 .OR. MatID(set_number, pos_index) == 1) THEN
+            IF (MatID(set_number, pos_index) == 0 .OR. MatID(set_number, pos_index) == 1 .OR. &
+                MatID(set_number, pos_index) == 3) THEN
                 n_points = mpfr
             ELSE
                 n_points = mpwr

@@ -3,7 +3,7 @@
 #
 #Reads Fortran dumps, resolves P (pitch) and D (rod diameter) from CSV or fallbacks,
 #draws each MatID as a horizontal slab (gap = P−D, pin = D), scales the chain to span
-#[0, N×P] with N = count of pins (MatID 0/1/3), writes mesh_plots/*.png.
+#[0, N×P] with N = count of pins (MatID 0/1/3), writes outputs/plots/mesh/*.png.
 #===============================================================================
 
 import csv
@@ -85,13 +85,15 @@ def main() -> int:
     from matplotlib.patches import Patch, Rectangle
     from matplotlib.ticker import FormatStrFormatter, MultipleLocator
 
-    dumps = sorted(glob.glob("mesh_dump_set_*.csv"))
+    dumps = sorted(glob.glob("outputs/mesh_dumps/mesh_dump_set_*.csv"))
     if not dumps:
-        print("No mesh dump files found (expected mesh_dump_set_*.csv).")
+        dumps = sorted(glob.glob("mesh_dump_set_*.csv"))
+    if not dumps:
+        print("No mesh dump files found (expected outputs/mesh_dumps/mesh_dump_set_*.csv).")
         return 2
 
-    out = Path("mesh_plots")
-    out.mkdir(exist_ok=True)
+    out = Path("outputs/plots/mesh")
+    out.mkdir(parents=True, exist_ok=True)
 
     # MatID → face color; legend text is "id = name"
     col = {0: "#1f77b4", 1: "#d62728", 2: "#17becf", 3: "#7f7f7f"}

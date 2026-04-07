@@ -72,7 +72,12 @@ def _n_pins(row_dicts) -> int:
 
 
 def latest_xs_verify_file():
-    files = sorted(Path(".").glob("xs_mapping_verify_case_*.csv"), key=lambda p: p.stat().st_mtime)
+    files = sorted(
+        Path(".").glob("outputs/xs_mapping/xs_mapping_verify_case_*.csv"),
+        key=lambda p: p.stat().st_mtime,
+    )
+    if not files:
+        files = sorted(Path(".").glob("xs_mapping_verify_case_*.csv"), key=lambda p: p.stat().st_mtime)
     return files[-1] if files else None
 
 
@@ -252,13 +257,15 @@ def main():
         return 1
 
     xs_map = load_xs_library(xs_path)
-    dumps = sorted(Path(".").glob("mesh_dump_set_*.csv"))
+    dumps = sorted(Path(".").glob("outputs/mesh_dumps/mesh_dump_set_*.csv"))
+    if not dumps:
+        dumps = sorted(Path(".").glob("mesh_dump_set_*.csv"))
     if not dumps:
         print("No mesh_dump_set_*.csv found. Run main_program first.")
         return 1
 
-    output_dir = Path("XS_mesh_mapped_visualizations")
-    output_dir.mkdir(exist_ok=True)
+    output_dir = Path("outputs/plots/xs_mesh_mapped")
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     for dump in dumps:
         plot_set(dump, xs_map, output_dir)

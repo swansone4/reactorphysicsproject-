@@ -6,7 +6,7 @@ MODULE read_input_file
     !===================================================================================
 
     ! solution variable 
-    INTEGER :: solution ! method for solving the problem (0 = Finite difference), (1 = Monte Carlo) 
+    INTEGER :: solution ! method for solving the problem (0 = Finite difference, to be created), (1 = Monte Carlo) 
     ! test case variable 
     INTEGER :: test_case 
     ! config variable 

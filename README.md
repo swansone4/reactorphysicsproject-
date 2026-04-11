@@ -1,47 +1,56 @@
-# Monte-Carlo/Finite Difference Nodal Solver for ENU6106 (Reactor Physics) course
+# ENU 6106 — reactor physics project
 
-Reads `input_file.txt` (main settings, boundaries, and `XSData` cross sections) and prints the values loaded into module `read_input_file`.
+## What you need
 
-## Requirements
+- `gfortran` (GNU Fortran)
+- Python 3 with `matplotlib` if you run the plotting scripts
 
-- [GNU Fortran](https://gcc.gnu.org/fortran/) (`gfortran`) on your PATH.
+## Main program (mesh + XS check)
 
-## Build
-
-From this directory:
+Build and run from the repo root (needs `input_file.txt` in the working directory):
 
 ```bash
 gfortran -o main_program read_input_file.f90 mesh_generation.f90 main.f90
-```
-
-Compile the module source before `main.f90` so the `read_input_file` module is available to the main program.
-
-## Run
-
-```bash
 ./main_program
 ```
 
-The program opens `input_file.txt` in the **current working directory**. Run the command from the project folder (or pass a path only if you change the code to accept a different filename; the default in `main.f90` is `input_file.txt`).
+- Set `VerifyXS = 1` in `input_file.txt` to write `outputs/xs_mapping/xs_mapping_verify_case_*.csv`.
+- With `plot_visuals` true in `mesh_generation.f90`, mesh CSVs go to `outputs/mesh_dumps/` and `scripts/mesh_visualization.py` is called for PNGs under `outputs/plots/mesh/`.
 
-## Project layout
+Optional XS-over-mesh figure (after you have mesh dumps):
 
-- `read_input_file.f90`, `mesh_generation.f90`, `main.f90`: Fortran source files.
-- `scripts/`: Python visualization scripts:
-  - `scripts/mesh_visualization.py`
-  - `scripts/XS_mesh_mapped_visualization.py`
-- `outputs/`: generated artifacts:
-  - `outputs/mesh_dumps/` (`mesh_dump_set_*.csv`)
-  - `outputs/xs_mapping/` (`xs_mapping_verify_case_*.csv`)
-  - `outputs/plots/mesh/` (mesh PNGs)
-  - `outputs/plots/xs_mesh_mapped/` (meshwise XS PNGs)
+```bash
+python3 scripts/XS_mesh_mapped_visualization.py
+```
 
-## What it does
+## Assembly Monte Carlo
 
-1. **`main.f90`** sets `print_input_data` and calls `read_input('input_file.txt')` then `print_input()`.
-2. **`read_input_file.f90`** declares the input variables and implements:
-   - Line-based reads for `Solution`, `TestCase`, `BoundL`, `BoundR`, and the scalar block (`Config`, `Configs`, `Cases`, etc.—see the source for the exact names).
-   - Parsing of the `XSData` … `END` block: for each `case = 0/1/2`, lines are advanced until a `SigTR` data line (skipping comment lines that sit between the case label and the data).
-   - **`Config`** is distinguished from **`ConfigSets`** so the geometry block title does not get parsed as `Config`.
+Uses the same input reader and `Config` / `TestCase` as above.
 
-Cross-section arrays are fixed length `(4)` per energy group/material column, matching the sample input layout.
+```bash
+gfortran -o monte_carlo_solver read_input_file.f90 mesh_generation.f90 monte_carlo_solver.f90
+./monte_carlo_solver
+```
+
+Summary: `outputs/monte_carlo/summary.txt`.
+
+## Bare slab benchmark (homogeneous slab, vacuum BCs)
+
+```bash
+cd bare_slab_benchmark
+gfortran -O2 -o monte_carlo_bare_slab_benchmark monte_carlo_bare_slab_benchmark.f90
+./monte_carlo_bare_slab_benchmark
+python3 plot_bare_slab_benchmark.py
+```
+
+Outputs appear under `bare_slab_benchmark/outputs/` (created when you run).
+
+## Layout
+
+| `read_input_file.f90` | Parses `input_file.txt` |
+| `mesh_generation.f90` | Config sets, XS on mesh, mesh dump, verify CSV |
+| `main.f90` | Driver for mesh / XS echo |
+| `monte_carlo_solver.f90` | 1D MC for the assembly geometry |
+| `bare_slab_benchmark/` | Standalone slab vs diffusion reference |
+| `scripts/` | Python visualization helpers |
+| `images/fuel_assembly_config.png` | Schematic for the assembly layout |

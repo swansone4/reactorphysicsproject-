@@ -1,41 +1,16 @@
-MODULE mesh_generation 
+MODULE mesh_generation
     USE read_input_file
-    IMPLICIT NONE 
+    IMPLICIT NONE
 
-    !===================================================================================
-    ! 
-    ! Here, we read the parameters from the input file reader (read_input_file.f90) 
-    ! and then use the parameters to generate the mesh. 
-    !
-    ! We must model (for Part I of the project) the fuel assembly which is visually represented in 
-    ! \images\fuel_assembly_config.png
-    ! 
-    ! Our mesh is defined at the bottom of the input file in the ConfigSets section.
-    !
-    ! To create a new mesh, simply create a new "Set = N" where N is the next available set number
-    ! and then define the material IDs 
-    !
-    !===================================================================================
-     
-     ! Here we declare some important variables 
-     LOGICAL :: plot_visuals = .TRUE.
+    ! 1D rod-chain mesh and XS mapped onto it (input ConfigSets; see images/fuel_assembly_config.png).
+    LOGICAL :: plot_visuals = .TRUE.
 
-     INTEGER :: num_sets ! Number of configuration sets
-     INTEGER, ALLOCATABLE :: MatID(:,:) ! Material IDs for positions [set, pos]
-     INTEGER, ALLOCATABLE :: set_len(:) ! number of positions for each set
-     REAL, ALLOCATABLE :: mesh(:,:) ! Mesh points for positions [pos, mesh_index]
+    INTEGER :: num_sets
+    INTEGER, ALLOCATABLE :: MatID(:,:)
+    INTEGER, ALLOCATABLE :: set_len(:)
+    REAL, ALLOCATABLE :: mesh(:,:)
 
-     !===================================================================================
-     !
-     ! Cross section data mapped to each position in a configuration set.
-     ! These arrays are populated by map_XS_to_meshes() using:
-     !   - MatID(set_number, pos_index)
-     !   - test_case (from input file)
-     !   - xs_*(:,:,:) arrays built in read_input_file.f90
-     !
-     ! Dimensions: (position, energy_group)
-     !
-     !===================================================================================
+    ! Per-position and per-mesh-cell cross sections (filled in map_XS_to_mesh).
     REAL, ALLOCATABLE :: pos_sigTR(:,:), pos_sigIS(:,:), pos_sigDS(:,:)
     REAL, ALLOCATABLE :: pos_sigA(:,:),  pos_sigF(:,:),  pos_nuT(:,:), pos_chiT(:,:)
     REAL, ALLOCATABLE :: mesh_sigTR(:,:,:), mesh_sigIS(:,:,:), mesh_sigDS(:,:,:)
@@ -92,20 +67,9 @@ CONTAINS
         END DO
     END SUBROUTINE init_configurations
 
-    !===========================================================
-    ! Map cross sections to each mesh position for a given set.
-    !
-    ! This builds a simple "material -> XS column" mapping so later solvers
-    ! (finite difference / Monte Carlo) can query cross sections per position.
-    !-----------------------------------------------------------
+    ! Copy library XS (for TestCase) onto each rod position and each fine mesh cell.
     SUBROUTINE map_XS_to_mesh(set_number)
         INTEGER, INTENT(IN) :: set_number
-        ! pos_index = index of the position in the configuration set
-        ! mesh_index = index of mesh point in the rod
-        ! g = energy group index 
-        ! n_pos = number of positions in the configuration set
-        ! n_points = number of mesh points in this rod
-        ! mid = material ID (0 = UO2, 1 = MOX, 2 = H2O, 3 = CR)
         INTEGER :: pos_index, mesh_index, g, n_pos, n_points, mid, case_idx
 
         n_pos = set_len(set_number)
@@ -190,20 +154,7 @@ CONTAINS
         END DO
     END SUBROUTINE map_XS_to_mesh
 
-    ! Backward-compatible wrapper for existing call sites.
-    SUBROUTINE map_XS_to_meshes(set_number)
-        INTEGER, INTENT(IN) :: set_number
-        CALL map_XS_to_mesh(set_number)
-    END SUBROUTINE map_XS_to_meshes
-
-    !===========================================================
-    ! Writes one CSV for a single XS library case: xs_*(case_idx, g, matcol) with
-    ! matcol = 1..mattypes (same indexing as map_XS_to_meshes uses via matid+1).
-    ! Enable with VerifyXS = 1 in the input file. Case selection:
-    !   - Optional argument selected_xs_case: if >= 0, use that case index (0=A,1=B,...);
-    !     if present and -1, use input TestCase.
-    !   - If omitted: use VerifyXSCase from input when >= 0, else TestCase.
-    !-----------------------------------------------------------
+    ! Debug: dump one XS case to CSV (VerifyXS = 1 in input; case from TestCase or VerifyXSCase).
     SUBROUTINE verify_XS_mapping(selected_xs_case)
         INTEGER, INTENT(IN), OPTIONAL :: selected_xs_case
         INTEGER :: u, ios, mcol, g, case_idx, case_input
@@ -349,7 +300,7 @@ CONTAINS
     ! Call Python to generate visualization PNGs.
     !-----------------------------------------------------------
     SUBROUTINE run_mesh_visualization()
-        CALL execute_command_line("python scripts/mesh_visualization.py", WAIT=.TRUE.)
+        CALL execute_command_line("python3 scripts/mesh_visualization.py", WAIT=.TRUE.)
     END SUBROUTINE run_mesh_visualization
 
     !===========================================================

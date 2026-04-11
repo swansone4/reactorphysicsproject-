@@ -1,10 +1,4 @@
-#================================================================================
-#1D mesh plotter for mesh_dump_set_*.csv.
-#
-#Reads Fortran dumps, resolves P (pitch) and D (rod diameter) from CSV or fallbacks,
-#draws each MatID as a horizontal slab (gap = P−D, pin = D), scales the chain to span
-#[0, N×P] with N = count of pins (MatID 0/1/3), writes outputs/plots/mesh/*.png.
-#===============================================================================
+# Plots mesh_dump_set_*.csv from Fortran (1D rod layout -> PNG under outputs/plots/mesh/).
 
 import csv
 import glob

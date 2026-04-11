@@ -44,7 +44,7 @@ solver   = 0
 Generations = 100
 Histories = 1000
 Skip = 1
-# VerifyXS = 1 writes xs_mapping_verify_case_<n>.csv for one XS library case only (same xs_* slice as map_XS_to_meshes).
+# VerifyXS = 1 writes xs_mapping_verify_case_<n>.csv for one XS library case (same xs_* slice as map_XS_to_mesh).
 # VerifyXS = 0 never writes that file — deleting the CSV and rerunning with 0 will not recreate it; set to 1 first.
 # VerifyXSCase = 0,1,... selects that case (A=0,B=1,...); -1 uses TestCase. Optional: CALL verify_XS_mapping(n) from main overrides when n>=0; use -1 for TestCase.
 VerifyXS = 1
@@ -80,15 +80,16 @@ BoundR = 1.0 1.0
 XSData
     #           Test Case A cross section data                                          #
     case = 0
+    # changed here to reflect the Test Cross Section Set A in the problem set
     #             Energy Group 1                        Energy Group 2                  #
     #        UO2      MOX      H2O      CR         UO2      MOX      H2O      CR        #
     #         0        1        2        3          0        1        2        3        #
-    SigTR = 0.24896  0.24798  0.23823  0.10000    0.88525  1.12071 1.22518  1.10000
-    SigIS = 0.22698  0.22482  0.21904  0.00000    0.68472  0.69359  1.21063  0.10000
-    SigDS = 0.01102  0.00886  0.02776  0.00000    0.00000  0.00000  0.00000  0.00000
-    SigA  = 0.01163  0.01495  0.01598  0.10000    0.11746  0.27116  0.01455  1.00000
-    SigF  = 0.00394  0.00400  0.00000  0.00000    0.08307  0.15596  0.00000  0.00000
-    nuT   = 2.46950  2.84100  0.00000  0.00000    2.46950  2.84100  0.00000  0.00000
+    SigTR = 0.20000  0.20000  0.20000  0.10000    1.00000  1.20000  1.10000  1.10000
+    SigIS = 0.18500  0.18500  0.17000  0.00000    0.80000  0.80000  1.10000  0.10000
+    SigDS = 0.01500  0.01500  0.03000  0.00000    0.00000  0.00000  0.00000  0.00000
+    SigA  = 0.00000  0.00000  0.00000  0.10000    0.20000  0.40000  0.00000  1.00000
+    SigF  = 0.00000  0.00000  0.00000  0.00000    0.18000  0.30000  0.00000  0.00000
+    nuT   = 0.00000  0.00000  0.00000  0.00000    1.40000  1.50000  0.00000  0.00000
     ChiT  = 1.00000  1.00000  0.00000  0.00000    0.00000  0.00000  0.00000  0.00000
 
     #           Test Case B cross section data                                          #
@@ -126,6 +127,5 @@ ConfigSets
     #      UO2 = 0, MOX = 1, H2O = 2, CR = 3                                            #
     # placeholder set, not important or relevant to project
     Set = 0
-    MatID = 2 3 2 0 2 0 2 0 2 0 2 0 2 0 2 3 2 0 2 0 2 0 2 0 2 0 2 3 2 0 2 0 2 0 2
-
+    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 
 END

@@ -5,6 +5,8 @@
 
 # executables
 main_program
+monte_carlo_solver
+bare_slab_benchmark/monte_carlo_bare_slab_benchmark
 *.exe
 
 # macOS
@@ -12,3 +14,4 @@ main_program
 
 # generated outputs
 outputs/
+bare_slab_benchmark/outputs/

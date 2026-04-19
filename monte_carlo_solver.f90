@@ -12,11 +12,14 @@ PROGRAM monte_carlo_solver
     INTEGER :: n_points, birth_cell
     INTEGER :: n_active_generations, summary_unit
     INTEGER :: step_count
+    INTEGER :: left_bc(number_of_energy_groups), right_bc(number_of_energy_groups)
+    INTEGER :: ig
 
     REAL(dp), ALLOCATABLE :: x_left(:), x_right(:), dx(:), x_center(:)
     REAL(dp), ALLOCATABLE :: sigma_total(:,:), sigma_in_scatter(:,:), sigma_absorption(:,:), sigma_fission(:,:), nu_bar(:,:)
     REAL(dp), ALLOCATABLE :: sigma_down_scatter(:)
-    REAL(dp), ALLOCATABLE :: source_pdf(:), source_next(:), track_length(:), k_history(:)
+    REAL(dp), ALLOCATABLE :: source_pdf(:), source_next(:), track_length(:,:), k_history(:)
+    REAL(dp), ALLOCATABLE :: flux_sum(:,:), flux_fundamental(:,:)
 
     REAL(dp) :: x, mu, free_path, remaining_path, distance_to_edge, distance_move
     REAL(dp) :: rand_u, p_capture, p_fission, p_in_scatter, p_down_scatter
@@ -24,6 +27,7 @@ PROGRAM monte_carlo_solver
     REAL(dp) :: fission_neutrons_produced, source_sum
     REAL(dp) :: k_mean, k_std, k_last
     REAL(dp) :: ref_k_table_A, ref_eta_nu_sigf_over_sig_capture
+    REAL(dp) :: flux_int_g1, flux_int_g2
 
     LOGICAL :: alive
     INTEGER :: neutron_group
@@ -37,6 +41,19 @@ PROGRAM monte_carlo_solver
 
     CALL read_input('input_file.txt')
     CALL init_configurations()
+
+    DO ig = 1, number_of_energy_groups
+        IF (NINT(bound_l(ig)) /= 0 .AND. NINT(bound_l(ig)) /= 1) THEN
+            PRINT *, "ERROR: BoundL must be 0 (vacuum) or 1 (reflective) per group; got", bound_l(ig)
+            STOP 1
+        END IF
+        IF (NINT(bound_r(ig)) /= 0 .AND. NINT(bound_r(ig)) /= 1) THEN
+            PRINT *, "ERROR: BoundR must be 0 (vacuum) or 1 (reflective) per group; got", bound_r(ig)
+            STOP 1
+        END IF
+        left_bc(ig) = NINT(bound_l(ig))
+        right_bc(ig) = NINT(bound_r(ig))
+    END DO
 
     set_number = config + 1
     IF (set_number < 1 .OR. set_number > configs) THEN
@@ -64,8 +81,9 @@ PROGRAM monte_carlo_solver
     ALLOCATE(sigma_fission(n_cells, number_of_energy_groups))
     ALLOCATE(nu_bar(n_cells, number_of_energy_groups))
     ALLOCATE(sigma_down_scatter(n_cells))
-    ALLOCATE(source_pdf(n_cells), source_next(n_cells), track_length(n_cells))
+    ALLOCATE(source_pdf(n_cells), source_next(n_cells), track_length(n_cells, number_of_energy_groups))
     ALLOCATE(k_history(generations))
+    ALLOCATE(flux_sum(n_cells, number_of_energy_groups), flux_fundamental(n_cells, number_of_energy_groups))
 
     CALL build_geometry_and_xs( &
         set_number, n_cells, x_left, x_right, dx, x_center, &
@@ -90,6 +108,8 @@ PROGRAM monte_carlo_solver
     END DO
     IF (SUM(source_pdf) <= 0.0_dp) source_pdf = 1.0_dp
     source_pdf = source_pdf / SUM(source_pdf)
+
+    flux_sum = 0.0_dp
 
     ! Superhistories: each generation uses fission sites from the last one as births.
     DO generation_index = 1, generations
@@ -127,28 +147,35 @@ PROGRAM monte_carlo_solver
 
                     IF (distance_to_edge >= remaining_path) THEN
                         distance_move = remaining_path
-                        track_length(cell_index) = track_length(cell_index) + distance_move
+                        track_length(cell_index, neutron_group) = track_length(cell_index, neutron_group) + distance_move
                         x = x + mu * distance_move
                         remaining_path = 0.0_dp
                     ELSE
                         distance_move = distance_to_edge
-                        track_length(cell_index) = track_length(cell_index) + distance_move
+                        track_length(cell_index, neutron_group) = track_length(cell_index, neutron_group) + distance_move
                         x = x + mu * distance_move
                         remaining_path = remaining_path - distance_move
 
-                        ! Reflecting ends (symmetry / zero net current at assembly edge).
                         IF (mu > 0.0_dp) THEN
                             IF (cell_index == n_cells) THEN
-                                mu = -mu
-                                x = x_right(n_cells) - 1.0E-12_dp
+                                IF (right_bc(neutron_group) == 1) THEN
+                                    mu = -mu
+                                    x = x_right(n_cells) - 1.0E-12_dp
+                                ELSE
+                                    alive = .FALSE.
+                                END IF
                             ELSE
                                 cell_index = cell_index + 1
                                 x = MIN(x, x_right(cell_index) - 1.0E-12_dp)
                             END IF
                         ELSE
                             IF (cell_index == 1) THEN
-                                mu = -mu
-                                x = x_left(1) + 1.0E-12_dp
+                                IF (left_bc(neutron_group) == 1) THEN
+                                    mu = -mu
+                                    x = x_left(1) + 1.0E-12_dp
+                                ELSE
+                                    alive = .FALSE.
+                                END IF
                             ELSE
                                 cell_index = cell_index - 1
                                 x = MAX(x, x_left(cell_index) + 1.0E-12_dp)
@@ -194,6 +221,8 @@ PROGRAM monte_carlo_solver
 
         k_history(generation_index) = fission_neutrons_produced / REAL(histories, dp)
 
+        IF (generation_index > skip) flux_sum = flux_sum + track_length
+
         source_sum = SUM(source_next)
         IF (source_sum > 0.0_dp) THEN
             source_pdf = source_next / source_sum
@@ -207,6 +236,19 @@ PROGRAM monte_carlo_solver
     k_std = SQRT(MAX(0.0_dp, SUM((k_history(skip+1:generations) - k_mean)**2) / REAL(n_active_generations, dp)))
     k_last = k_history(generations)
 
+    DO cell_index = 1, n_cells
+        DO ig = 1, number_of_energy_groups
+            flux_fundamental(cell_index, ig) = flux_sum(cell_index, ig) / &
+                (REAL(histories * n_active_generations, dp) * dx(cell_index))
+        END DO
+    END DO
+
+    flux_int_g1 = SUM(flux_fundamental(:, 1) * dx(:))
+    flux_int_g2 = SUM(flux_fundamental(:, 2) * dx(:))
+
+    CALL write_flux_cells_csv(n_cells, x_left, x_right, dx, flux_fundamental, &
+        sigma_total, sigma_in_scatter, sigma_down_scatter, sigma_absorption, sigma_fission, nu_bar)
+
     OPEN(NEWUNIT=summary_unit, FILE=output_dir // '/summary.txt', STATUS='REPLACE', ACTION='WRITE')
     WRITE(summary_unit,'(A,I0)') "config_set_0based = ", config
     WRITE(summary_unit,'(A,I0)') "positions_in_set = ", n_pos
@@ -214,7 +256,8 @@ PROGRAM monte_carlo_solver
     WRITE(summary_unit,'(A,I0)') "generations = ", generations
     WRITE(summary_unit,'(A,I0)') "histories = ", histories
     WRITE(summary_unit,'(A,I0)') "skip = ", skip
-    WRITE(summary_unit,'(A)') "boundary_outer = reflective_J0"
+    WRITE(summary_unit,'(A,I0,A,I0)') "bound_left_g1_g2 = ", left_bc(1), " ", left_bc(2)
+    WRITE(summary_unit,'(A,I0,A,I0)') "bound_right_g1_g2 = ", right_bc(1), " ", right_bc(2)
     WRITE(summary_unit,'(A)') "sigma_collision = SigTR; capture_prob uses (SigA-SigF)+ per Table 1"
     IF (ref_k_table_A >= 0.0_dp) THEN
         WRITE(summary_unit,'(A,F12.6)') "ref_k_nu_sigf_over_sigA_table = ", ref_k_table_A
@@ -223,6 +266,8 @@ PROGRAM monte_carlo_solver
     WRITE(summary_unit,'(A,F12.6)') "k_eff_mc_last = ", k_last
     WRITE(summary_unit,'(A,F12.6)') "k_eff_mc_mean = ", k_mean
     WRITE(summary_unit,'(A,F12.6)') "k_eff_mc_std = ", k_std
+    WRITE(summary_unit,'(A,F12.6)') "flux_integral_g1 = ", flux_int_g1
+    WRITE(summary_unit,'(A,F12.6)') "flux_integral_g2 = ", flux_int_g2
     CLOSE(summary_unit)
 
     PRINT *, "Monte Carlo solver complete."
@@ -235,7 +280,7 @@ PROGRAM monte_carlo_solver
     PRINT *, "k_eff (last) =", k_last
     PRINT *, "k_eff (mean after skip) =", k_mean
     PRINT *, "k_eff std =", k_std
-    PRINT *, "Wrote outputs/monte_carlo/summary.txt"
+    PRINT *, "Wrote outputs/monte_carlo/summary.txt and flux_cells.csv"
 
 CONTAINS
 
@@ -251,8 +296,34 @@ CONTAINS
         REAL(dp), INTENT(OUT) :: sigma_f(total_cells, number_of_energy_groups)
         REAL(dp), INTENT(OUT) :: nu(total_cells, number_of_energy_groups)
 
-        INTEGER :: pos_i, mesh_i, n_points_local, cell_i
-        REAL(dp) :: running_x, d_length
+        INTEGER :: pos_i, mesh_i, n_points_local, cell_i, mid_i, n_pin_cells
+        REAL(dp) :: running_x, d_length, pitch_dp, diam_dp, w_geom, w_sum, L_asm, scale_x
+
+        pitch_dp = REAL(rod_pitch, dp)
+        diam_dp = REAL(rod_diameter, dp)
+
+        n_pin_cells = 0
+        DO pos_i = 1, set_len(set_num)
+            mid_i = MatID(set_num, pos_i)
+            IF (mid_i == 0 .OR. mid_i == 1 .OR. mid_i == 3) n_pin_cells = n_pin_cells + 1
+        END DO
+
+        w_sum = 0.0_dp
+        DO pos_i = 1, set_len(set_num)
+            w_sum = w_sum + segment_width_x_cm(MatID(set_num, pos_i), pitch_dp, diam_dp)
+        END DO
+
+        IF (n_pin_cells > 0) THEN
+            L_asm = REAL(n_pin_cells, dp) * pitch_dp
+        ELSE
+            L_asm = MAX(w_sum, pitch_dp)
+        END IF
+
+        IF (w_sum > 1.0E-15_dp) THEN
+            scale_x = L_asm / w_sum
+        ELSE
+            scale_x = 1.0_dp
+        END IF
 
         cell_i = 0
         running_x = 0.0_dp
@@ -262,7 +333,8 @@ CONTAINS
             ELSE
                 n_points_local = mpfr
             END IF
-            d_length = rod_diameter / REAL(n_points_local, dp)
+            w_geom = segment_width_x_cm(MatID(set_num, pos_i), pitch_dp, diam_dp) * scale_x
+            d_length = w_geom / REAL(n_points_local, dp)
 
             DO mesh_i = 1, n_points_local
                 cell_i = cell_i + 1
@@ -290,6 +362,40 @@ CONTAINS
             END DO
         END DO
     END SUBROUTINE build_geometry_and_xs
+
+    PURE FUNCTION segment_width_x_cm(mid, pitch, diam) RESULT(w)
+        INTEGER, INTENT(IN) :: mid
+        REAL(dp), INTENT(IN) :: pitch, diam
+        REAL(dp) :: w
+        IF (mid == 2) THEN
+            w = MAX(pitch - diam, 0.0_dp)
+        ELSE
+            w = diam
+        END IF
+    END FUNCTION segment_width_x_cm
+
+    SUBROUTINE write_flux_cells_csv(n, xl, xr, dxc, flux_mc, st, sis, sds, sa, sf, nu)
+        INTEGER, INTENT(IN) :: n
+        REAL(dp), INTENT(IN) :: xl(n), xr(n), dxc(n), flux_mc(n, number_of_energy_groups)
+        REAL(dp), INTENT(IN) :: st(n, number_of_energy_groups), sis(n, number_of_energy_groups)
+        REAL(dp), INTENT(IN) :: sds(n), sa(n, number_of_energy_groups), sf(n, number_of_energy_groups)
+        REAL(dp), INTENT(IN) :: nu(n, number_of_energy_groups)
+        INTEGER :: u, i, ios
+
+        OPEN(NEWUNIT=u, FILE=output_dir // '/flux_cells.csv', STATUS='REPLACE', ACTION='WRITE', IOSTAT=ios)
+        IF (ios /= 0) THEN
+            PRINT *, "ERROR: could not open flux_cells.csv"
+            STOP 1
+        END IF
+        WRITE(u,'(A)') "cell,x_left_cm,x_right_cm,dx_cm,flux_g1,flux_g2,sigTR_g1,sigTR_g2,sigIS_g1,sigIS_g2,sigDS_g1," // &
+            "sigA_g1,sigA_g2,sigF_g1,sigF_g2,nu_g1,nu_g2"
+        DO i = 1, n
+            WRITE(u,'(I0,15(A,ES16.8))') i, ",", xl(i), ",", xr(i), ",", dxc(i), ",", flux_mc(i,1), ",", flux_mc(i,2), &
+                ",", st(i,1), ",", st(i,2), ",", sis(i,1), ",", sis(i,2), ",", sds(i), ",", sa(i,1), ",", sa(i,2), &
+                ",", sf(i,1), ",", sf(i,2), ",", nu(i,1), ",", nu(i,2)
+        END DO
+        CLOSE(u)
+    END SUBROUTINE write_flux_cells_csv
 
     ! Inverse-CDF sample from discrete source_pdf over cells.
     SUBROUTINE sample_birth_cell(source_pdf, sampled_cell)

@@ -14,6 +14,7 @@ PROGRAM monte_carlo_solver
     INTEGER :: step_count
     INTEGER :: left_bc(number_of_energy_groups), right_bc(number_of_energy_groups)
     INTEGER :: ig
+    INTEGER :: plot_exitstat
 
     REAL(dp), ALLOCATABLE :: x_left(:), x_right(:), dx(:), x_center(:)
     REAL(dp), ALLOCATABLE :: sigma_total(:,:), sigma_in_scatter(:,:), sigma_absorption(:,:), sigma_fission(:,:), nu_bar(:,:)
@@ -34,6 +35,7 @@ PROGRAM monte_carlo_solver
 
     CHARACTER(LEN=*), PARAMETER :: output_dir = "outputs/monte_carlo"
     CHARACTER(LEN=*), PARAMETER :: mkdir_cmd = "mkdir -p outputs/monte_carlo"
+    CHARACTER(LEN=*), PARAMETER :: plot_cmd = "python scripts/plot_monte_carlo_flux.py"
 
     ! Make sure output folder exists before OPEN.
     CALL execute_command_line(mkdir_cmd, WAIT=.TRUE.)
@@ -246,6 +248,7 @@ PROGRAM monte_carlo_solver
     flux_int_g1 = SUM(flux_fundamental(:, 1) * dx(:))
     flux_int_g2 = SUM(flux_fundamental(:, 2) * dx(:))
 
+    CALL write_flux_fundamental_csv(n_cells, x_center, flux_fundamental)
     CALL write_flux_cells_csv(n_cells, x_left, x_right, dx, flux_fundamental, &
         sigma_total, sigma_in_scatter, sigma_down_scatter, sigma_absorption, sigma_fission, nu_bar)
 
@@ -281,6 +284,13 @@ PROGRAM monte_carlo_solver
     PRINT *, "k_eff (mean after skip) =", k_mean
     PRINT *, "k_eff std =", k_std
     PRINT *, "Wrote outputs/monte_carlo/summary.txt and flux_cells.csv"
+
+    ! Generate MC-only flux plot (fast g1 + thermal g2).
+    CALL execute_command_line(plot_cmd, WAIT=.TRUE., EXITSTAT=plot_exitstat)
+    IF (plot_exitstat /= 0) THEN
+        PRINT *, "Warning: flux plot command failed (EXITSTAT=", plot_exitstat, ")."
+        PRINT *, "You can run manually: ", TRIM(plot_cmd)
+    END IF
 
 CONTAINS
 
@@ -396,6 +406,23 @@ CONTAINS
         END DO
         CLOSE(u)
     END SUBROUTINE write_flux_cells_csv
+
+    SUBROUTINE write_flux_fundamental_csv(n, xc, flux_mc)
+        INTEGER, INTENT(IN) :: n
+        REAL(dp), INTENT(IN) :: xc(n), flux_mc(n, number_of_energy_groups)
+        INTEGER :: u, i, ios
+
+        OPEN(NEWUNIT=u, FILE=output_dir // '/flux_fundamental.csv', STATUS='REPLACE', ACTION='WRITE', IOSTAT=ios)
+        IF (ios /= 0) THEN
+            PRINT *, "ERROR: could not open flux_fundamental.csv"
+            STOP 1
+        END IF
+        WRITE(u,'(A)') "cell,x_cm,g1,g2"
+        DO i = 1, n
+            WRITE(u,'(I0,3(A,ES16.8))') i, ",", xc(i), ",", flux_mc(i,1), ",", flux_mc(i,2)
+        END DO
+        CLOSE(u)
+    END SUBROUTINE write_flux_fundamental_csv
 
     ! Inverse-CDF sample from discrete source_pdf over cells.
     SUBROUTINE sample_birth_cell(source_pdf, sampled_cell)

@@ -24,11 +24,14 @@ Analk = 1
 # Configs  = The total number of different configurations entered into the input file.  #
 # MatTypes = The total number of different material types for cross section data to be  #
 #            entered.                                                                   #
-# EnergyGroups = The total number of different energy groups in the problem.            #
+# EnergyGroups = 7 for root read_input_file / monte_carlo_solver. For seven_groups MC set EnergyGroups = 7,
+# seven BoundL/BoundR values each, and use the XSData7G block below (see seven_groups/README.txt).
 Cases    = 3
 Configs  = 2
 MatTypes = 4
 EnergyGroups = 2
+
+
 
 # solver  = The specific solver to be used for this calculation. Only needed for finite #
 #           difference method.                                                          #
@@ -43,7 +46,7 @@ solver   = 0
 #               Carlo method.                                                           #
 Generations = 100
 Histories = 1000
-Skip = 1
+Skip = 5
 # VerifyXS = 1 writes xs_mapping_verify_case_<n>.csv for one XS library case (same xs_* slice as map_XS_to_mesh).
 # VerifyXS = 0 never writes that file — deleting the CSV and rerunning with 0 will not recreate it; set to 1 first.
 # VerifyXSCase = 0,1,... selects that case (A=0,B=1,...); -1 uses TestCase. Optional: CALL verify_XS_mapping(n) from main overrides when n>=0; use -1 for TestCase.
@@ -62,13 +65,21 @@ NumAss   = 2
 NumRods  = 17
 RodDia   = 0.94
 RodPitch = 1.26
-MPFR = 7
+MPFR = 13
 MPWR = 4
-
 # You have to specify the boundary conditions after you set the number of energy groups #
-# BoundL / BoundR: two values (group 1, group 2). Use 0 = vacuum, 1 = reflective.         #
-BoundL = 1.0 1.0
-BoundR = 1.0 1.0
+# BoundL / BoundR: one value per group (2 values when EnergyGroups=2; 7 when EnergyGroups=7 for seven_groups).
+# Use 0 = vacuum, 1 = reflective.    
+#               EG1             EG2                                      #
+BoundL =        1.0             1.0
+BoundR =        1.0             1.0
+
+# 7-energy group boundary conditions (used by seven_groups/monte_carlo_solver_7g.f90)
+# Enter exactly 7 values for each.
+#              EG1      EG2         EG3         EG4         EG5         EG6         EG7
+BoundL_7G =    1.0      1.0         1.0         1.0         1.0         1.0         1.0
+BoundR_7G =    1.0      1.0         1.0         1.0         1.0         1.0         1.0
+
 
 #=======================================================================================#
 #                                                                                       #
@@ -77,12 +88,10 @@ BoundR = 1.0 1.0
 #=======================================================================================#
 
 XSData
-    #           Test Case A cross section data                                          #
+    #           Test Case A cross section data (two-group; format required by read_input_file) #
     case = 0
-    # changed here to reflect the Test Cross Section Set A in the problem set
-    #             Energy Group 1                        Energy Group 2                  #
-    #        UO2      MOX      H2O      CR         UO2      MOX      H2O      CR        #
-    #         0        1        2        3          0        1        2        3        #
+    #                   Energy Group 1                         Energy Group 2 
+    #         UO2      MOX      H20      CR         UO2      MOX      H20      CR
     SigTR = 0.20000  0.20000  0.20000  0.10000    1.00000  1.20000  1.10000  1.10000
     SigIS = 0.18500  0.18500  0.17000  0.00000    0.80000  0.80000  1.10000  0.10000
     SigDS = 0.01500  0.01500  0.03000  0.00000    0.00000  0.00000  0.00000  0.00000
@@ -91,24 +100,18 @@ XSData
     nuT   = 0.00000  0.00000  0.00000  0.00000    1.40000  1.50000  0.00000  0.00000
     ChiT  = 1.00000  1.00000  0.00000  0.00000    0.00000  0.00000  0.00000  0.00000
 
-    #           Test Case B cross section data                                          #
+    #           Test Case B cross section data (two-group; first two energy groups of project set) #
     case = 1
-    #         Energy Group 1               Energy Group 2                               #
-    #       UO2    MOX    H2O   CR       UO2   MOX  H2O  CR                             #
-    #        0      1      2     3        0     1    2    3                             #
-    SigTR = 0.2    0.2    0.2   0.1      1.0   1.2  1.1  1.1
-    SigIS = 0.185  0.185  0.17  0.0      0.8   0.8  1.1  0.1
-    SigDS = 0.015  0.015  0.03  0.0      0.0   0.0  0.0  0.0
-    SigA  = 0.0    0.0    0.0   0.1      0.2   0.4  0.0  1.0
-    SigF  = 0.0    0.0    0.0   0.0      0.18  0.3  0.0  0.0
-    nuT   = 0.0    0.0    0.0   0.0      1.4   1.5  0.0  0.0
-    ChiT  = 1.0    1.0    0.0   0.0      0.0   0.0  0.0  0.0
+    SigTR =     0.17794900      0.18304500      0.15920600      0.21676800        0.32980500      0.33670500      0.41297000      0.48009800
+    SigIS =     0.12753700      0.13150400      0.04447770      0.17056300        0.32445600      0.33040300      0.28233400      0.47105000
+    SigDS =     0.04237800      0.04204600      0.11340000      0.04440120        0.00163140      0.00164630      0.12994000      0.00068548
+    SigA  =     0.00802480      0.00948620      0.00060105      0.00170490        0.00371740      0.00465560      0.00001579      0.00836224
+    SigF  =     0.00721206      0.00867209      0.00000000      0.00000000        0.00081930      0.00162426      0.00000000      0.00000000
+    nuT   =     0.02005998      0.02518600      0.00000000      0.00000000        0.00202730      0.00473951      0.00000000      0.00000000
+    ChiT  =     0.58791000      0.58791000      0.00000000      0.00000000        0.41176000      0.41176000      0.00000000      0.00000000
 
     #           Test Case C cross section data                                          #
     case = 2
-    #         Energy Group 1               Energy Group 2                               #
-    #       UO2    MOX    H2O   CR       UO2   MOX  H2O  CR                             #
-    #        0      1      2     3        0     1    2    3                             #
     SigTR = 0.2    0.2    0.2   0.1      0.2   0.6  1.1  1.1
     SigIS = 0.2    0.2    0.17  0.0      0.0   0.0  1.1  0.1
     SigDS = 0.0    0.0    0.03  0.0      0.0   0.0  0.0  0.0
@@ -126,5 +129,6 @@ ConfigSets
     #      UO2 = 0, MOX = 1, H2O = 2, CR = 3                                            #
     # placeholder set, not important or relevant to project
     Set = 0
-    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 
+    MatID = 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 
 END
+

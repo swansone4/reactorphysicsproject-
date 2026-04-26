@@ -1,0 +1,16 @@
+config_set_0based = 0
+positions_in_set = 69
+total_mesh_cells = 582
+generations = 100
+histories = 1000
+skip = 5
+bound_left_g1_g2 = 1 1
+bound_right_g1_g2 = 1 1
+sigma_collision = SigTR; capture_prob uses (SigA-SigF)+ per Table 1
+ref_k_nu_sigf_over_sigA_table =     1.260000
+ref_eta_nu_sigf_over_sig_capture =    12.600003
+k_eff_mc_last =     1.261400
+k_eff_mc_mean =     1.260236
+k_eff_mc_std =     0.013836
+flux_integral_g1 =    52.932234
+flux_integral_g2 =     6.765373

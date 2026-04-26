@@ -1,0 +1,16 @@
+slab_width_cm =     8.000000
+sigma_total =     0.885250
+sigma_absorption =     0.117460
+sigma_fission =     0.083070
+nu_bar =     2.469500
+k_inf =     1.746479
+L2 =     3.205700
+D =     0.376541
+extrapolation_distance_cm =     0.802410
+effective_slab_width_cm =     9.604820
+B2 =     0.106985
+k_eff_analytic_buckling =     1.300469
+k_eff_mc_mean =     1.307143
+k_eff_mc_std =     0.005660
+k_eff_mc_last =     1.305230
+relative_error_percent =     0.513186

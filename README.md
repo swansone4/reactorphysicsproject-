@@ -34,6 +34,29 @@ gfortran -o monte_carlo_solver read_input_file.f90 mesh_generation.f90 monte_car
 
 Summary: `outputs/monte_carlo/summary.txt`.
 
+## Seven-group Monte Carlo
+
+Build and run from the repo root:
+
+```bash
+gfortran -O2 -o seven_groups/monte_carlo_solver_7g.exe read_input_file.f90 mesh_generation.f90 seven_groups/csv_xs_7g.f90 seven_groups/monte_carlo_solver_7g.f90
+seven_groups/monte_carlo_solver_7g.exe
+```
+
+The seven-group case reads geometry/run controls from `input_file.txt` and 7-group XS data from:
+
+- `seven_groups/macroscopic_cross_sections.csv`
+- `seven_groups/scattering_matrix.csv`
+
+Main outputs are written under `seven_groups/outputs/monte_carlo/`:
+
+- `summary.txt`
+- `flux_cells.csv`
+- `flux_fundamental.csv`
+- `mc_flux_g1_to_g7.png`
+- `mc_cell_center_flux_g1_to_g7.png`
+- `mc_cell_edge_current_g1_to_g7.png`
+
 ## Bare slab benchmark (homogeneous slab, vacuum BCs)
 
 ```bash

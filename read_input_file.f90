@@ -19,8 +19,8 @@ MODULE read_input_file
     INTEGER :: configs
     ! mattypes variable 
     INTEGER :: mattypes
-    ! energy groups variable
-    INTEGER :: energy_groups
+    ! energy groups variable (default 2 if omitted from input)
+    INTEGER :: energy_groups = 2
     ! solver variable 
     INTEGER :: solver
     ! generations variable 
@@ -45,10 +45,12 @@ MODULE read_input_file
     INTEGER :: mpfr
     ! number of Meshes Per Water Rod (MPWR). MPWR should be an even number 
     INTEGER :: mpwr
-    ! left boundary condition value 
-    REAL :: bound_l(2)
-    ! right boundary condition value    
-    REAL :: bound_r(2)
+    ! left / right boundary (0 = vacuum, 1 = reflective), length = EnergyGroups
+    REAL, ALLOCATABLE :: bound_l(:)
+    REAL, ALLOCATABLE :: bound_r(:)
+    ! Explicit seven-group boundaries for seven_groups MC (optional in input_file.txt).
+    REAL, ALLOCATABLE :: bound_l_7g(:)
+    REAL, ALLOCATABLE :: bound_r_7g(:)
 
     !===================================================================================
     ! Configuration sets (from ConfigSets block)
@@ -251,6 +253,7 @@ CONTAINS
         INTEGER, ALLOCATABLE :: new_row_lens(:,:)
         INTEGER :: row_idx, max_rows, max_row_len
         INTEGER :: verify_xs_file_flag
+        LOGICAL :: got_bound_l_7g, got_bound_r_7g
 
         OPEN(UNIT=10, FILE=filename, STATUS='OLD', ACTION='READ')
 
@@ -273,20 +276,8 @@ CONTAINS
             END IF
         END DO
 
-        ! Read Boundaries
-        REWIND(10)
-        DO
-            READ(10, '(A)') line
-            IF (INDEX(line,"BoundL") == 1) THEN
-                READ(line, *) keyword, equals_sign, bound_l
-            END IF
-            IF (INDEX(line,"BoundR") == 1) THEN
-                READ(line, *) keyword, equals_sign, bound_r
-                EXIT
-            END IF
-        END DO
-
-        ! Read other scalar inputs (one pass; Configs before Config)
+        ! Read other scalar inputs (one pass; Configs before Config). EnergyGroups must be
+        ! read before boundaries so BoundL/BoundR can be allocated to length EnergyGroups.
         REWIND(10)
         DO
             READ(10, '(A)', IOSTAT=ios) line
@@ -333,6 +324,76 @@ CONTAINS
                 READ(line, *) keyword, equals_sign, mpwr
             END IF
         END DO
+
+        IF (energy_groups <= 0) energy_groups = 2
+
+        IF (ALLOCATED(bound_l)) DEALLOCATE(bound_l)
+        IF (ALLOCATED(bound_r)) DEALLOCATE(bound_r)
+        IF (ALLOCATED(bound_l_7g)) DEALLOCATE(bound_l_7g)
+        IF (ALLOCATED(bound_r_7g)) DEALLOCATE(bound_r_7g)
+        ALLOCATE(bound_l(energy_groups))
+        ALLOCATE(bound_r(energy_groups))
+        ALLOCATE(bound_l_7g(7))
+        ALLOCATE(bound_r_7g(7))
+        bound_l = 1.0
+        bound_r = 1.0
+        bound_l_7g = 1.0
+        bound_r_7g = 1.0
+        got_bound_l_7g = .FALSE.
+        got_bound_r_7g = .FALSE.
+        REWIND(10)
+        DO
+            READ(10, '(A)', IOSTAT=ios) line
+            IF (ios /= 0) EXIT
+            adj = ADJUSTL(line)
+            IF (LEN_TRIM(adj) == 0) CYCLE
+            IF (adj(1:1) == '#') CYCLE
+            IF (INDEX(adj, "BoundL_7G") == 1) THEN
+                READ(line, *, IOSTAT=ios) keyword, equals_sign, bound_l_7g
+                IF (ios /= 0) THEN
+                    PRINT *, "ERROR: BoundL_7G must provide 7 numeric values."
+                    STOP 1
+                END IF
+                got_bound_l_7g = .TRUE.
+            ELSE IF (INDEX(adj, "BoundR_7G") == 1) THEN
+                READ(line, *, IOSTAT=ios) keyword, equals_sign, bound_r_7g
+                IF (ios /= 0) THEN
+                    PRINT *, "ERROR: BoundR_7G must provide 7 numeric values."
+                    STOP 1
+                END IF
+                got_bound_r_7g = .TRUE.
+            ELSE IF (INDEX(adj, "BoundL") == 1) THEN
+                READ(line, *) keyword, equals_sign, bound_l
+            ELSE IF (INDEX(adj, "BoundR") == 1) THEN
+                READ(line, *) keyword, equals_sign, bound_r
+            END IF
+        END DO
+
+        ! If explicit 7G boundaries were omitted, derive defaults from BoundL/BoundR.
+        IF (.NOT. got_bound_l_7g) THEN
+            IF (SIZE(bound_l) >= 1) bound_l_7g(1) = bound_l(1)
+            IF (SIZE(bound_l) >= 2) THEN
+                bound_l_7g(2:7) = bound_l(2)
+            ELSE
+                bound_l_7g(2:7) = bound_l_7g(1)
+            END IF
+        END IF
+        IF (.NOT. got_bound_r_7g) THEN
+            IF (SIZE(bound_r) >= 1) bound_r_7g(1) = bound_r(1)
+            IF (SIZE(bound_r) >= 2) THEN
+                bound_r_7g(2:7) = bound_r(2)
+            ELSE
+                bound_r_7g(2:7) = bound_r_7g(1)
+            END IF
+        END IF
+
+        IF (energy_groups == 7) THEN
+            PRINT *, "EnergyGroups = 7: use the seven-group MC in seven_groups/ (see seven_groups/README.txt)."
+            STOP 1
+        ELSE IF (energy_groups /= 2) THEN
+            PRINT *, "ERROR: EnergyGroups must be 2 for this project (main + root monte_carlo). Got:", energy_groups
+            STOP 1
+        END IF
 
         ! Read XS Data
         REWIND(10)
@@ -438,10 +499,6 @@ CONTAINS
         !
         !===================================================================================
 
-        IF (energy_groups /= 2) THEN ! for now, we only support 2 energy groups for the solver
-            PRINT *, "ERROR: XSData mapping currently expects EnergyGroups = 2."
-            STOP 1
-        END IF
         IF (mattypes <= 0) THEN
             PRINT *, "ERROR: MatTypes must be > 0 to map XSData columns."
             STOP 1
@@ -738,6 +795,8 @@ CONTAINS
 
         PRINT *, "Bound Left =", bound_l
         PRINT *, "Bound Right =", bound_r
+        PRINT *, "Bound Left 7G =", bound_l_7g
+        PRINT *, "Bound Right 7G =", bound_r_7g
 
         PRINT *, "================ XS DATA ================"
 

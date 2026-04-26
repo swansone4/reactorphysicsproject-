@@ -12,6 +12,6 @@ bare_slab_benchmark/monte_carlo_bare_slab_benchmark
 # macOS
 .DS_Store
 
-# generated outputs
-outputs/
-bare_slab_benchmark/outputs/
+# Local / excluded from this repo snapshot (not pushed)
+finite_difference/
+finite_difference_methods/

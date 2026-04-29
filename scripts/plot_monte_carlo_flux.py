@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def _read_input_mesh_params(repo_root: Path):
-    """Read MPFR, MPWR, and MatID list from input_file.txt."""
+    # scrape MPFR, MPWR, MatID from input_file.txt
     text = (repo_root / "input_file.txt").read_text(encoding="utf-8", errors="replace")
     mpfr = mpwr = None
     for line in text.splitlines():
@@ -27,7 +27,7 @@ def _read_input_mesh_params(repo_root: Path):
 
 
 def _flux_group_columns(fieldnames):
-    """Parse ordered (index, column_name) for g1, g2, ... from CSV header."""
+    # (group number, column name) sorted, from g1 g2 ... in the csv header
     if not fieldnames:
         return []
     out = []
@@ -44,11 +44,7 @@ def _cells_per_pos(mid: int, mpfr: int, mpwr: int) -> int:
 
 
 def _fuel_segment_averages(rows, mat_ids, mpfr, mpwr, col_a, col_b):
-    """
-    For each fuel MatID position (0 or 1), one dot per segment:
-    average flux in columns col_a and col_b over cells in that segment.
-    Dot x = mean of cell x_cm in that segment (visual center only).
-    """
+    # one point per fuel rod (mat 0/1): mean flux in that mpfr chunk, x = mean x_cm in chunk
     n = len(rows)
     i0 = 0
     xc, y1, y2 = [], [], []

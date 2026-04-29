@@ -1,4 +1,4 @@
-#=======================================================================================#
+﻿#=======================================================================================#
 #                                                                                       #
 # Main input data.  This input controls the program execution and sets general problem  #
 # geometry. This should be the first set of inputs.                                     #
@@ -65,8 +65,8 @@ NumAss   = 2
 NumRods  = 17
 RodDia   = 0.94
 RodPitch = 1.26
-MPFR = 13
-MPWR = 4
+MPFR = 9
+MPWR = 3
 # You have to specify the boundary conditions after you set the number of energy groups #
 # BoundL / BoundR: one value per group (2 values when EnergyGroups=2; 7 when EnergyGroups=7 for seven_groups).
 # Use 0 = vacuum, 1 = reflective.    
@@ -129,6 +129,6 @@ ConfigSets
     #      UO2 = 0, MOX = 1, H2O = 2, CR = 3                                            #
     # placeholder set, not important or relevant to project
     Set = 0
-    MatID = 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 
+    MatID = 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 3 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 
 END
 

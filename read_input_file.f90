@@ -1,160 +1,50 @@
 MODULE read_input_file
     IMPLICIT NONE
 
-    !===================================================================================
-    ! Basic input file variables and parameters
-    !===================================================================================
+    ! Scalars and arrays filled from input_file.txt (read_input walks the file line by line).
 
-    ! solution variable 
-    INTEGER :: solution ! method for solving the problem (0 = Finite difference, to be created), (1 = Monte Carlo) 
-    ! test case variable 
-    INTEGER :: test_case 
-    ! config variable 
-    INTEGER :: config 
-    ! Analk variable
+    INTEGER :: solution  ! 0 = FD placeholder, 1 = MC (see input file)
+    INTEGER :: test_case
+    INTEGER :: config
     INTEGER :: analk
-    ! cases variable 
     INTEGER :: cases
-    ! configs variable 
     INTEGER :: configs
-    ! mattypes variable 
     INTEGER :: mattypes
-    ! energy groups variable (default 2 if omitted from input)
     INTEGER :: energy_groups = 2
-    ! solver variable 
     INTEGER :: solver
-    ! generations variable 
     INTEGER :: generations
-    ! histories variable 
-    INTEGER :: histories 
-    ! skip variable 
-    INTEGER :: skip 
-    ! If .TRUE., write xs_mapping_verify_case_<n>.csv (see mesh_generation::verify_XS_mapping).
-    LOGICAL :: verify_xs_request = .FALSE.
-    ! XS case to dump (0=A,1=B,...); if < 0, use current TestCase from input (unless verify_XS_mapping is called with an explicit case).
-    INTEGER :: verify_xs_case_choice = -1
-    ! number of assemblies variable 
+    INTEGER :: histories
+    INTEGER :: skip
+    LOGICAL :: verify_xs_request = .FALSE.   ! VerifyXS /= 0 -> mesh_generation writes verify CSVs
+    INTEGER :: verify_xs_case_choice = -1   ! VerifyXSCase: which XS case column dump (or <0 = use TestCase)
     INTEGER :: num_assemblies
-    ! number of rods variable 
     INTEGER :: num_rods
-    ! rod diameter value 
     REAL :: rod_diameter
-    ! rod pitch value 
     REAL :: rod_pitch
-    ! number of Meshes Per Fuel Rod (MPFR) variable 
     INTEGER :: mpfr
-    ! number of Meshes Per Water Rod (MPWR). MPWR should be an even number 
-    INTEGER :: mpwr
-    ! left / right boundary (0 = vacuum, 1 = reflective), length = EnergyGroups
-    REAL, ALLOCATABLE :: bound_l(:)
+    INTEGER :: mpwr                         ! spec says keep this even
+    REAL, ALLOCATABLE :: bound_l(:)         ! 0=vacuum, 1=reflect; length = EnergyGroups
     REAL, ALLOCATABLE :: bound_r(:)
-    ! Explicit seven-group boundaries for seven_groups MC (optional in input_file.txt).
-    REAL, ALLOCATABLE :: bound_l_7g(:)
+    REAL, ALLOCATABLE :: bound_l_7g(:)      ! seven_groups MC: BoundL_7G / BoundR_7G if you use them
     REAL, ALLOCATABLE :: bound_r_7g(:)
 
-    !===================================================================================
-    ! Configuration sets (from ConfigSets block)
-    !===================================================================================
+    ! ConfigSets block -> one MatID strip per config index
     INTEGER, ALLOCATABLE :: config_set_len(:)        ! number of MatID entries per set (flattened)
     INTEGER, ALLOCATABLE :: config_set_matid(:,:)    ! [set_index(1..configs), 1..max_len], padded with -1
     INTEGER, ALLOCATABLE :: config_set_nrows(:)      ! number of MatID lines (rows) per set
     INTEGER, ALLOCATABLE :: config_set_row_len(:,:)  ! row lengths per set [set, row]
 
-    !===================================================================================
-    ! Now, the cross-section (XS) data arrays 
-    !===================================================================================
-
-    ! Defining the mattype variable for indexing the cross section data arrays 
     INTEGER :: mattype
 
-    !===================================================================================
-    ! Cross section data for: 
-    ! Energy group = 1, Test case = A (case = 0) 
-    ! Declaring the length of all of these to be 4 since thats how it is in the input file, can be changed however 
-    !===================================================================================
+    ! XSData in the file is still these flat arrays (4 material columns per line); read_input copies into xs_* below.
+    REAL :: sigTR_1_A(4), sigIS_1_A(4), sigDS_1_A(4), sigA_1_A(4), sigF_1_A(4), nuT_1_A(4), chiT_1_A(4)
+    REAL :: sigTR_2_A(4), sigIS_2_A(4), sigDS_2_A(4), sigA_2_A(4), sigF_2_A(4), nuT_2_A(4), chiT_2_A(4)
+    REAL :: sigTR_1_B(4), sigIS_1_B(4), sigDS_1_B(4), sigA_1_B(4), sigF_1_B(4), nuT_1_B(4), chiT_1_B(4)
+    REAL :: sigTR_2_B(4), sigIS_2_B(4), sigDS_2_B(4), sigA_2_B(4), sigF_2_B(4), nuT_2_B(4), chiT_2_B(4)
+    REAL :: sigTR_1_C(4), sigIS_1_C(4), sigDS_1_C(4), sigA_1_C(4), sigF_1_C(4), nuT_1_C(4), chiT_1_C(4)
+    REAL :: sigTR_2_C(4), sigIS_2_C(4), sigDS_2_C(4), sigA_2_C(4), sigF_2_C(4), nuT_2_C(4), chiT_2_C(4)
 
-    REAL :: sigTR_1_A(4) ! Transport cross section (sigTR) for energy group 1 for test case A
-    REAL :: sigIS_1_A(4) ! inelastic scatterring cross section (sigIS) for energy group 1
-    REAL :: sigDS_1_A(4) ! downscattering cross section (sigDS) for energy group 1
-    REAL :: sigA_1_A(4)  ! absorption cross section (sigA) for energy group 1
-    REAL :: sigF_1_A(4)  ! fission cross section (sigF) for energy group 1
-    REAL :: nuT_1_A(4)   ! average number of neutrons emitted per fission (nuT) for energy group 1
-    REAL :: chiT_1_A(4)  ! total neutron fission specture (chiT) for energy group 1
-
-    !===================================================================================
-    ! Cross section data for: 
-    ! Energy group = 2, Test case = A (case = 0)
-    !===================================================================================
-
-    REAL :: sigTR_2_A(4) ! transport cross section (sigTR) for energy group 2 for test case A
-    REAL :: sigIS_2_A(4) ! inelastic scatterring cross section (sigIS) for energy group 2
-    REAL :: sigDS_2_A(4) ! downscattering cross section (sigDS) for energy group 2
-    REAL :: sigA_2_A(4) ! absorption cross section (sigA) for energy group 2
-    REAL :: sigF_2_A(4) ! fission cross section (sigF) for energy group 2
-    REAL :: nuT_2_A(4)  ! average number of neutrons emitted per fission (nuT) for energy group 2
-    REAL :: chiT_2_A(4) ! total neutron fission specture (chiT) for energy group 2
-
-    !===================================================================================
-    ! Cross section data for: 
-    ! Energy group = 1, Test case = B (case = 1)
-    !===================================================================================
-
-    REAL :: sigTR_1_B(4) ! transport cross section (sigTR) for energy group 1 for test case B
-    REAL :: sigIS_1_B(4) ! inelastic scatterring cross section (sigIS) for energy group 1
-    REAL :: sigDS_1_B(4) ! downscattering cross section (sigDS) for energy group 1
-    REAL :: sigA_1_B(4) ! absorption cross section (sigA) for energy group 1
-    REAL :: sigF_1_B(4) ! fission cross section (sigF) for energy group 1
-    REAL :: nuT_1_B(4) ! average number of neutrons emitted per fission (nuT) for energy group 1
-    REAL :: chiT_1_B(4) ! total neutron fission specture (chiT) for energy group 1
-
-    !===================================================================================
-    ! Cross section data for: 
-    ! Energy group = 2, Test case = B (case = 1)
-    !===================================================================================
-
-    REAL :: sigTR_2_B(4) ! transport cross section (sigTR) for energy group 2 for test case B
-    REAL :: sigIS_2_B(4) ! inelastic scatterring cross section (sigIS) for energy group 2
-    REAL :: sigDS_2_B(4) ! downscattering cross section (sigDS) for energy group 2
-    REAL :: sigA_2_B(4) ! absorption cross section (sigA) for energy group 2
-    REAL :: sigF_2_B(4) ! fission cross section (sigF) for energy group 2
-    REAL :: nuT_2_B(4) ! average number of neutrons emitted per fission (nuT) for energy group 2
-    REAL :: chiT_2_B(4) ! total neutron fission specture (chiT) for energy group 2
-
-    !===================================================================================
-    ! Cross section data for: 
-    ! Energy group = 1, Test case = C (case = 2)
-    !===================================================================================
-
-    REAL :: sigTR_1_C(4) ! transport cross section (sigTR) for energy group 1 for test case C
-    REAL :: sigIS_1_C(4) ! inelastic scatterring cross section (sigIS) for energy group 1
-    REAL :: sigDS_1_C(4) ! downscattering cross section (sigDS) for energy group 1 
-    REAL :: sigA_1_C(4) ! absorption cross section (sigA) for energy group 1
-    REAL :: sigF_1_C(4) ! fission cross section (sigF) for energy group 1
-    REAL :: nuT_1_C(4) ! average number of neutrons emitted per fission (nuT) for energy group 1
-    REAL :: chiT_1_C(4) ! total neutron fission specture (chiT) for energy group 1
-
-    !===================================================================================
-    ! Cross section data for: 
-    ! Energy group = 2, Test case = C (case = 2)
-    !===================================================================================
-
-    REAL :: sigTR_2_C(4) ! transport cross section (sigTR) for energy group 2 for test case C
-    REAL :: sigIS_2_C(4) ! inelastic scatterring cross section (sigIS) for energy group 2
-    REAL :: sigDS_2_C(4) ! downscattering cross section (sigDS) for energy group 2
-    REAL :: sigA_2_C(4) ! absorption cross section (sigA) for energy group 2
-    REAL :: sigF_2_C(4) ! fission cross section (sigF) for energy group 2
-    REAL :: nuT_2_C(4) ! average number of neutrons emitted per fission (nuT) for energy group 2
-    REAL :: chiT_2_C(4) ! total neutron fission specture (chiT) for energy group 2
-
-    !===================================================================================
-    ! Cross section data mapped by (case, energy group, material column)
-    !
-    ! After reading the XSData block, we map each column to a specific material.
-    ! Column 1 -> matID = 0 (UO2), column 2 -> matID = 1 (MOX), etc.
-    !
-    ! Access pattern (example):
-    !   xs_sigTR(test_case+1, 1, matID+1)  ! SigTR for selected test_case, group 1, material matID
-    !===================================================================================
+    ! Packed as xs_*(case, group, matcol) — same column order as the file: UO2, MOX, H2O, CR.
     REAL, ALLOCATABLE :: xs_sigTR(:,:,:)
     REAL, ALLOCATABLE :: xs_sigIS(:,:,:)
     REAL, ALLOCATABLE :: xs_sigDS(:,:,:)
@@ -165,10 +55,7 @@ MODULE read_input_file
 
 CONTAINS
 
-    !===================================================================================
-    ! Helper: parse integers from the RHS of a line like "MatID = 2 0 2 ..."
-    ! Returns up to SIZE(values) integers in values(1:n_values).
-    !===================================================================================
+    ! Pull integers off the right-hand side of "MatID = ..." style lines.
     SUBROUTINE parse_int_values(rhs, values, n_values)
         CHARACTER(LEN=*), INTENT(IN) :: rhs
         INTEGER, INTENT(OUT) :: values(:)
@@ -212,9 +99,7 @@ CONTAINS
         END DO
     END SUBROUTINE parse_int_values
 
-    !===================================================================================
-    ! Helper: find '=' and return RHS (adjusted/trimmed)
-    !===================================================================================
+    ! Text after '=' on a keyword line.
     SUBROUTINE get_rhs_after_equals(line, rhs)
         CHARACTER(LEN=*), INTENT(IN) :: line
         CHARACTER(LEN=*), INTENT(OUT) :: rhs
@@ -227,11 +112,7 @@ CONTAINS
         END IF
     END SUBROUTINE get_rhs_after_equals
 
-    !===================================================================================
-    ! Subroutine: read_input
-    ! Now, I've heard of using Namelist which reads the input file in the native ForTRAN format
-    ! But, I'm more used to doing a line by line read.
-    !===================================================================================
+    ! Could use namelist I guess; this is just a straight line-by-line parser.
     SUBROUTINE read_input(filename)
         CHARACTER(LEN=*), INTENT(IN) :: filename
         CHARACTER(LEN=256) :: line
@@ -257,7 +138,7 @@ CONTAINS
 
         OPEN(UNIT=10, FILE=filename, STATUS='OLD', ACTION='READ')
 
-        ! Read Solution
+        ! Solution =
         DO
             READ(10, '(A)') line
             IF (INDEX(line,"Solution") == 1) THEN
@@ -266,7 +147,7 @@ CONTAINS
             END IF
         END DO
 
-        ! Read TestCase
+        ! TestCase =
         REWIND(10)
         DO
             READ(10, '(A)') line
@@ -276,8 +157,7 @@ CONTAINS
             END IF
         END DO
 
-        ! Read other scalar inputs (one pass; Configs before Config). EnergyGroups must be
-        ! read before boundaries so BoundL/BoundR can be allocated to length EnergyGroups.
+        ! One pass for the rest of the scalars. Need EnergyGroups before BoundL/R so those allocate to the right length.
         REWIND(10)
         DO
             READ(10, '(A)', IOSTAT=ios) line
@@ -395,7 +275,7 @@ CONTAINS
             STOP 1
         END IF
 
-        ! Read XS Data
+        ! XSData block
         REWIND(10)
         DO
             READ(10, '(A)') line
@@ -469,35 +349,7 @@ CONTAINS
             END IF
         END DO
 
-        ! Assign each column of the cross-section arrays to a specific material 
-        ! The structure of each Case is such that: 
-        ! ---- Case A ----
-        ! SigTR Group 1 =  0.248960003      0.247979999      0.238230005      0.100000001    
-        ! SigIS Group 1 =  0.226980001      0.224820003      0.219040006       0.00000000    
-        ! SigDS Group 1 =   1.10200001E-02   8.86000041E-03   2.77600009E-02   0.00000000    
-        ! SigA  Group 1 =   1.16299996E-02   1.49499997E-02   1.59799997E-02  0.100000001    
-        ! SigF  Group 1 =   3.94000020E-03   4.00000019E-03   0.00000000       0.00000000    
-        ! nuT   Group 1 =   2.46950006       2.84100008       0.00000000       0.00000000    
-        ! chiT  Group 1 =   1.00000000       1.00000000       0.00000000       0.00000000    
-        ! SigTR Group 2 =  0.885249972       1.12071002       1.22518003       1.10000002    
-        ! [...] 
-        ! Where column one is the cross-sectional data for matID = 0 or UO2, column two is for matID = 1 or MOX, etc.
-
-        !===================================================================================
-        ! Build a (case, energy group, material column) mapping so we can directly index by
-        ! matID from the geometry. This retains the "column = material" structure from the
-        ! input file, but stores it in a way the solver can use.
-        !===================================================================================
-
-        !===================================================================================
-        !
-        ! This structure will allow us to identify the cross-sections for each energy group for any given case per materal
-        ! To find, for example the transport cross section for case 1, energy group 1, and material 2 (MOX):
-        ! xs_sigTR(1, 1, 2)
-        ! 
-        ! So, the first paramter is the case, the second is the energy group, and the third is the material
-        !
-        !===================================================================================
+        ! Stuff the file XS into xs_*(case, group, material). File columns are materials 0..3; geometry uses the same mat IDs.
 
         IF (mattypes <= 0) THEN
             PRINT *, "ERROR: MatTypes must be > 0 to map XSData columns."
@@ -532,9 +384,9 @@ CONTAINS
         xs_nuT   = 0.0
         xs_chiT  = 0.0
 
-        ! Case A (case = 0 -> index 1)
+        ! case A -> index 1 in xs_*
         IF (cases >= 1) THEN
-            xs_sigTR(1,1,:) = sigTR_1_A(1:mattypes) ! transport cross section array for case A, EG 1, 
+            xs_sigTR(1,1,:) = sigTR_1_A(1:mattypes) 
             xs_sigIS(1,1,:) = sigIS_1_A(1:mattypes)
             xs_sigDS(1,1,:) = sigDS_1_A(1:mattypes)
             xs_sigA (1,1,:) = sigA_1_A(1:mattypes)
@@ -551,7 +403,7 @@ CONTAINS
             xs_chiT (1,2,:) = chiT_2_A(1:mattypes)
         END IF
 
-        ! Case B (case = 1 -> index 2)
+        ! case B -> index 2
         IF (cases >= 2) THEN
             xs_sigTR(2,1,:) = sigTR_1_B(1:mattypes)
             xs_sigIS(2,1,:) = sigIS_1_B(1:mattypes)
@@ -570,7 +422,7 @@ CONTAINS
             xs_chiT (2,2,:) = chiT_2_B(1:mattypes)
         END IF
 
-        ! Case C (case = 2 -> index 3)
+        ! case C -> index 3
         IF (cases >= 3) THEN
             xs_sigTR(3,1,:) = sigTR_1_C(1:mattypes)
             xs_sigIS(3,1,:) = sigIS_1_C(1:mattypes)
@@ -592,7 +444,7 @@ CONTAINS
         ! Example (UO2, matID=0) for verification:
         ! xs_sigTR(test_case+1, 1, 0+1) is SigTR for group 1, selected case, UO2 column
 
-        ! Read ConfigSets block (Set = N, MatID = ... lines, END terminator)
+        ! ConfigSets: Set = / MatID = / END
         ! Modular behavior: determine number of sets from the block itself.
         found_configsets = .FALSE.
         IF (ALLOCATED(counts)) DEALLOCATE(counts)
@@ -766,9 +618,7 @@ CONTAINS
         CLOSE(10)
     END SUBROUTINE read_input
 
-    !===================================================================================
-    ! Subroutine: print_input
-    !===================================================================================
+    ! Echo what got read (debug / sanity check).
     SUBROUTINE print_input()
         PRINT *, "================ INPUT DATA ================"
 

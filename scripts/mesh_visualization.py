@@ -1,4 +1,4 @@
-# Plots mesh_dump_set_*.csv from Fortran (1D rod layout -> PNG under outputs/plots/mesh/).
+# Reads mesh_dump_set_*.csv from main/mesh_generation, writes PNGs under outputs/plots/mesh/.
 
 import csv
 import glob
@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def read_rows(path: str) -> list:
-    """CSV → list of dicts; utf-8-sig strips BOM; strip header keys and string values."""
+    # utf-8-sig drops BOM if excel touched the file
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         dr = csv.DictReader(f)
         if dr.fieldnames:
@@ -20,7 +20,7 @@ def read_rows(path: str) -> list:
 
 
 def _input_file_float(path: Path, line_start_pattern: str):
-    """First 'Keyword = float' line in input (ignore # comments); None if missing/bad."""
+    # first "Keyword = float" match, # comments stripped; None if nothing
     if not path.is_file():
         return None
     rx = re.compile(line_start_pattern, re.I)
@@ -35,7 +35,7 @@ def _input_file_float(path: Path, line_start_pattern: str):
 
 
 def resolve_mesh_float(rows, col: str, env_var: str, input_pattern: str, input_label: str, dump_path: str):
-    """Scalar from CSV column, else env, else input_file.txt; print Note when not from CSV."""
+    # try csv col, then env var, then grep input_file.txt
     if rows and rows[0].get(col) not in (None, ""):
         return float(rows[0][col])
     v = os.environ.get(env_var)
@@ -50,7 +50,7 @@ def resolve_mesh_float(rows, col: str, env_var: str, input_pattern: str, input_l
 
 
 def segment_width_cm(mid: int, pitch: float, diameter: float) -> float:
-    """Slab width along x: water = gap (P−D), solid pin = D."""
+    # water channel width P-D, fuel/cr pin uses D
     return max(pitch - diameter, 0.0) if mid == 2 else diameter
 
 
@@ -59,7 +59,7 @@ def _n_pins(row_dicts) -> int:
 
 
 def _target_length_cm(row_dicts, pitch: float, diameter: float) -> float:
-    """L = N×P for N pins; if no pins, sum segment widths (fallback)."""
+    # total x length: N*pitch if we have fuel pins, else sum slab widths
     n = _n_pins(row_dicts)
     if n > 0:
         return n * pitch
@@ -89,7 +89,7 @@ def main() -> int:
     out = Path("outputs/plots/mesh")
     out.mkdir(parents=True, exist_ok=True)
 
-    # MatID → face color; legend text is "id = name"
+    # colors for mat IDs in the legend
     col = {0: "#1f77b4", 1: "#d62728", 2: "#17becf", 3: "#7f7f7f"}
     name = {0: "UO2", 1: "MOX", 2: "H2O", 3: "CR"}
     legend_handles = [Patch(facecolor=col[m], edgecolor="none", label=f"{m} = {name[m]}") for m in col]
@@ -106,7 +106,7 @@ def main() -> int:
             print(f"Skip {path}: missing {sorted(miss)}.")
             continue
 
-        # Geometry: must match Fortran (pitch/diameter in dump or same fallbacks as before)
+        # P, D same as Fortran: from csv row if present else env / input_file.txt
         P = resolve_mesh_float(rows, "rod_pitch", "MESH_ROD_PITCH", r"RodPitch\s*=", "RodPitch", path)
         if P is None:
             print(f"Skip {path}: need rod_pitch (CSV / MESH_ROD_PITCH / input RodPitch).")
@@ -129,11 +129,11 @@ def main() -> int:
         for ir in range(1, n_cfg_rows + 1):
             ax = axes[ir - 1]
             rd = _rows_for_config_row(rows, ir)
-            # True slab widths in cm (gap vs pin); sum may exceed L if an extra trailing gap exists in MatID list.
+            # physical width per position (water gap vs fuel pin)
             wgeom = [segment_width_cm(int(r["matid"]), P, D) for r in rd]
             gtot = sum(wgeom)
             n_pin = _n_pins(rd)
-            # Target span along x = N×P (Fortran print_mesh); scale compresses/stretches slabs to fit [0, L].
+            # L = N*pitch like print_mesh; scale so the segments fill [0,L]
             L = n_pin * P if n_pin else (gtot if gtot > 0 else P)
             s = L / gtot if gtot > 1e-12 else 1.0
             x0 = 0.0

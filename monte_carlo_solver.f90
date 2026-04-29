@@ -37,7 +37,7 @@ PROGRAM monte_carlo_solver
     CHARACTER(LEN=*), PARAMETER :: mkdir_cmd = "mkdir -p outputs/monte_carlo"
     CHARACTER(LEN=*), PARAMETER :: plot_cmd = "python scripts/plot_monte_carlo_flux.py"
 
-    ! Make sure output folder exists before OPEN.
+    ! mkdir so OPEN on summary etc. doesn't fail on a clean tree
     CALL execute_command_line(mkdir_cmd, WAIT=.TRUE.)
     CALL RANDOM_SEED()
 

@@ -1,8 +1,6 @@
-"""
-Mesh sensitivity (UO2): hold MPWR fixed (from input_file.txt), vary MPFR only.
-Each run also sets Generations, Histories, and Skip to fixed values (see module constants).
-Writes: outputs/monte_carlo/mesh_sensitivity_study_UO2.png
-"""
+# Sweep MPFR for a 2-0-2-0... water/UO2 strip, MPWR fixed from your input_file.txt.
+# Pins MC generations/histories/skip to the constants below, runs monte_carlo_solver each time,
+# saves outputs/monte_carlo/mesh_sensitivity_study_UO2.png
 import re
 import subprocess
 from pathlib import Path
@@ -13,13 +11,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 69 positions: alternating water (2) / UO2 (0).
-_UO2_MATID = " ".join(str(2 if i % 2 == 0 else 0) for i in range(69))
+_UO2_MATID = " ".join(str(2 if i % 2 == 0 else 0) for i in range(69))  # 69 pins, water/uo2 alternating
 
-# Vary only meshes per fuel rod (MPFR). MPWR comes from your input file (unchanged across runs).
 _MPFR_VALUES = list(range(3, 16))  # 3 … 15
 
-# Monte Carlo run controls: fixed for every sweep point (matches documented “ideal” MC setup).
 _MC_GENERATIONS = 100
 _MC_HISTORIES = 1000
 _MC_SKIP = 5
@@ -109,7 +104,7 @@ def main() -> int:
     mpfr_x = np.array(_MPFR_VALUES, dtype=float)
     n_cells_arr = np.array(n_cells_list, dtype=float)
 
-    # Matplotlib passes scalars or 1D arrays; np.interp matches that and must not be wrapped in float().
+    # np.interp already does the right thing for scalar or array mpfr; don't wrap in float()
     def _mpfr_to_n_cells(mpfr):
         return np.interp(np.asarray(mpfr, dtype=float), mpfr_x, n_cells_arr)
 

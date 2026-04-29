@@ -31,7 +31,7 @@ PROGRAM monte_carlo_bare_slab_benchmark
     LOGICAL :: alive
     INTEGER :: step_counter
 
-    ! Diffusion reference: k_inf, buckling B^2=(pi/a)^2, k_eff = k_inf/(1+B^2 L^2), etc.
+    ! diffusion theory k for comparison (k_inf, B^2, extrapolation distance, etc.)
     REAL(dp) :: k_infinite
     REAL(dp) :: diffusion_coefficient
     REAL(dp) :: migration_area

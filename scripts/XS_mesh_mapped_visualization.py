@@ -12,12 +12,9 @@ from matplotlib.patches import Patch
 
 
 XS_NAMES = ["sigTR", "sigIS", "sigDS", "sigA", "sigF", "nuT", "chiT"]
-# Legend swatches (solid, readable).
 MATERIAL_COLORS = {0: "#1f77b4", 1: "#d62728", 2: "#008b8b", 3: "#5c5c5c"}
-# Panel backgrounds: distinct pastels so g1 (blue) / g2 (orange) lines stay visible.
-MATERIAL_BG = {0: "#b8d4f0", 1: "#f4c2c2", 2: "#9ee8e8", 3: "#c5c5ce"}
+MATERIAL_BG = {0: "#b8d4f0", 1: "#f4c2c2", 2: "#9ee8e8", 3: "#c5c5ce"}  # light fill behind each mat strip
 MATERIAL_NAMES = {0: "UO2", 1: "MOX", 2: "H2O", 3: "CR"}
-# Strong enough to read; still below line zorder.
 MATERIAL_BG_ALPHA = 0.55
 
 
@@ -63,7 +60,7 @@ def resolve_mesh_float(rows, col: str, env_var: str, input_pattern: str, dump_pa
 
 
 def segment_width_cm(mid: int, pitch: float, diameter: float) -> float:
-    """Same as mesh_visualization: water = gap (P−D), pin = D."""
+    # copy of the rule in mesh_visualization.py
     return max(pitch - diameter, 0.0) if mid == 2 else diameter
 
 
@@ -92,11 +89,7 @@ def load_xs_library(xs_path):
 
 
 def flatten_x_cm_and_spans(sorted_rows, pitch: float, diameter: float):
-    """
-    Same 1D x(cm) convention as mesh_visualization.py: per config row, slabs scaled to L = N×P;
-    mesh point k is at x0 + (k+0.5)/npt * w. Multiple rows are concatenated along x.
-    Returns (x_cm_list, rod_spans) where rod_spans is (x_lo, x_hi, matid) per rod in order.
-    """
+    # x grid like mesh_visualization: scale slabs to L=N*pitch, stack rows in x; returns xs + (lo,hi,mid) spans
     x_mesh = []
     rod_spans = []
     x_global = 0.0
@@ -227,7 +220,7 @@ def plot_set(dump_path, xs_map, output_dir):
     ]
     xs_axes[-1].set_xlabel("x (cm) — 1D problem direction")
 
-    # Reserve top margin: title high, legend clearly below (figure coordinates).
+    # squish plot up a bit so title + legend fit
     fig.tight_layout(rect=[0.0, 0.0, 1.0, 0.82])
     fig.subplots_adjust(top=0.82)
     fig.suptitle(f"{dump_path.stem}: meshwise XS mapping", y=0.98, fontsize=12)

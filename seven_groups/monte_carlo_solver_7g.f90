@@ -185,7 +185,7 @@ PROGRAM monte_carlo_solver_7g
                 ELSE IF (rand_u < p_capture + p_fission + p_scatter) THEN
                     CALL sample_scatter_group(sigma_scatter(cell_index, neutron_group, :), neutron_group)
                 ELSE
-                    ! Any small leftover probability is treated as in-group continuation.
+                    ! leftover weight -> stay in same group
                 END IF
             END DO
         END DO

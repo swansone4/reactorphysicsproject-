@@ -18,10 +18,7 @@ MODULE mesh_generation
 
 CONTAINS
 
-    !===========================================================
-    ! Initialize configuration sets
-    ! Each rod is assigned a material ID (0 = UO2, 1 = MOX, 2 = H2O, 3 = CR)
-    !-----------------------------------------------------------
+    ! Load ConfigSets into MatID(:,:) — 0=UO2, 1=MOX, 2=H2O, 3=CR
     SUBROUTINE init_configurations()
         INTEGER :: set_index, max_len
 
@@ -74,7 +71,7 @@ CONTAINS
 
         n_pos = set_len(set_number)
 
-        ! Input TestCase = 0..cases-1 maps to xs_* first dimension 1..cases (Fortran index = test_case + 1).
+        ! test_case is 0-based in the file; xs_* first index is 1-based
         case_idx = test_case + 1
         IF (case_idx < 1 .OR. case_idx > cases) THEN
             PRINT *, "ERROR: test_case out of range for loaded XS cases. test_case=", test_case, " cases=", cases
@@ -154,7 +151,7 @@ CONTAINS
         END DO
     END SUBROUTINE map_XS_to_mesh
 
-    ! Debug: dump one XS case to CSV (VerifyXS = 1 in input; case from TestCase or VerifyXSCase).
+    ! VerifyXS=1 -> dump one XS case to csv for checking the map
     SUBROUTINE verify_XS_mapping(selected_xs_case)
         INTEGER, INTENT(IN), OPTIONAL :: selected_xs_case
         INTEGER :: u, ios, mcol, g, case_idx, case_input
@@ -223,9 +220,7 @@ CONTAINS
         PRINT *, "verify_XS_mapping: wrote ", TRIM(fname), " (XS case ", case_input, " only)"
     END SUBROUTINE verify_XS_mapping
 
-    !===========================================================
-    ! Dump a lightweight CSV for Python visualization.
-    !-----------------------------------------------------------
+    ! CSV for mesh_visualization.py
     SUBROUTINE write_mesh_dump(set_number)
         INTEGER, INTENT(IN) :: set_number
         INTEGER :: pos_index, n_points, n_pos, u, ios
@@ -263,7 +258,7 @@ CONTAINS
                 n_points = mpwr
             END IF
 
-            ! Use the actual ConfigSets row structure (each MatID line = a row)
+            ! If the input used multiple MatID lines, keep row/col consistent with that layout
             pos_in_set = pos_in_set + 1
             IF (ALLOCATED(config_set_row_len) .AND. ALLOCATED(config_set_nrows)) THEN
                 IF (row > config_set_nrows(set_number)) THEN
@@ -296,17 +291,11 @@ CONTAINS
         CLOSE(u)
     END SUBROUTINE write_mesh_dump
 
-    !===========================================================
-    ! Call Python to generate visualization PNGs.
-    !-----------------------------------------------------------
     SUBROUTINE run_mesh_visualization()
         CALL execute_command_line("python3 scripts/mesh_visualization.py", WAIT=.TRUE.)
     END SUBROUTINE run_mesh_visualization
 
-    !===========================================================
-    ! Generate mesh points for all rods in a configuration set, these are the center points of each mesh segment. 
-    ! The number of mesh points is determined by the material type (MPFR for fuel, MPWR for water) as the project requirements specify. 
-    !-----------------------------------------------------------
+    ! Cell centers inside each pin (fuel -> mpfr segments, water -> mpwr)
     SUBROUTINE generate_mesh(set_number)
         INTEGER, INTENT(IN) :: set_number  ! Configuration set to use
         INTEGER :: pos_index, mesh_index, n_points, n_pos
@@ -322,22 +311,17 @@ CONTAINS
         IF (ALLOCATED(mesh)) DEALLOCATE(mesh)
         ALLOCATE(mesh(n_pos, MAX(mpfr, mpwr)))
 
-        ! Loop over each position
         DO pos_index = 1, n_pos
 
-            ! Determine number of mesh points for this rod
             IF (MatID(set_number, pos_index) == 0 .OR. MatID(set_number, pos_index) == 1 .OR. &
                 MatID(set_number, pos_index) == 3) THEN
-                ! Fuel rod uses MPFR mesh points, we determine the number of points here by dividing the diameter by MPFR
                 n_points = mpfr
                 d_length = rod_diameter / REAL(mpfr)
             ELSE
-                ! Water rod uses MPWR mesh points, we determine the number of points here by dividing the diameter by MPWR
                 n_points = mpwr
                 d_length = rod_diameter / REAL(mpwr)
             END IF
 
-            ! Generate mesh points (center of each segment)
             DO mesh_index = 1, n_points
                 mesh(pos_index, mesh_index) = d_length * (mesh_index - 0.5)
             END DO
@@ -345,9 +329,6 @@ CONTAINS
         END DO
     END SUBROUTINE generate_mesh
 
-    !===========================================================
-    ! Print the mesh for a configuration set
-    !-----------------------------------------------------------
     SUBROUTINE print_mesh(set_number)
         INTEGER, INTENT(IN) :: set_number
         INTEGER :: pos_index, n_points, n_pos
@@ -370,7 +351,7 @@ CONTAINS
 
         n_pos = set_len(set_number)
 
-        ! Minimal per-position summary (material, points, first/last radius)
+        ! one line per rod position
         DO pos_index = 1, n_pos
             IF (MatID(set_number, pos_index) == 0 .OR. MatID(set_number, pos_index) == 1 .OR. &
                 MatID(set_number, pos_index) == 3) THEN

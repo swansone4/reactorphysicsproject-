@@ -1,0 +1,17 @@
+config_set_0based = 0
+k_eff_fd =     1.1714601124E+00
+k_converged = T
+outer_iterations = 20
+tridiag_solver = 0
+sor_omega =     1.5000000000E+00
+method: 0=direct matrix inversion 1=Jacobi 2=SR(Gauss-Seidel) 3=SOR
+total_mesh_cells = 411
+fd_formulation: 3-point d_{i,i+1} + removal + Lecture18 albedo/reflect on boundaries; power iter k
+max_inf_norm_b_minus_Aphi_final_phi =     2.9252511295E-06
+tol_solve =     1.0000000000E-04
+tol_k =     1.0000000000E-02
+tol_in =     1.0000000000E-05
+k_diag_fission_over_removal_Rphi =     2.8218341592E-01
+integral_P_fis =     1.0000000000E+00
+integral_R_phi_dx =     3.5437943677E+00
+k_diag note: denominator is sum R_g*phi_g*dx only; edge diffusion leakage is separate.

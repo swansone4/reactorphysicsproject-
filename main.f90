@@ -8,7 +8,7 @@ PROGRAM main
 
     print_input_data = .TRUE.
 
-    ! Turn off mesh dumps / Python plots by setting plot_visuals = .FALSE. in mesh_generation if you want.
+    ! flip plot_visuals in mesh_generation.f90 if you don't want dumps / the mesh plot script
     CALL read_input('input_file.txt')
     IF (verify_xs_request) THEN
         CALL verify_XS_mapping()
